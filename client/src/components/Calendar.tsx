@@ -38,7 +38,7 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
   };
 
   const isDateAvailable = (day: Date) => {
-    // 일요일(0)은 항상 예약 불가
+    // 일요일(0)만 예약 불가로 설정하고 월요일(1)은 예약 가능
     if (getDay(day) === 0) return false;
     
     const dateStr = format(day, 'yyyy-MM-dd');
