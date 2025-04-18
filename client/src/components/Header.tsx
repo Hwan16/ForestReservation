@@ -21,13 +21,13 @@ const Header = () => {
                 strokeWidth="2" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
-                className="text-primary text-3xl mr-2 h-8 w-8"
+                className="text-green-600 text-3xl mr-2 h-8 w-8"
               >
                 <path d="M17 22v-1a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1" />
                 <path d="M12 2v10" />
                 <path d="M9.17 4a3 3 0 1 0 5.66 0" />
               </svg>
-              <h1 className="text-xl md:text-2xl font-bold text-primary-dark">아름유아 숲 체험원</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-green-700">아름유아 숲 체험원</h1>
             </Link>
             <Link href="/" className="text-red-600 px-4 py-2 rounded bg-red-100 hover:bg-red-200 font-medium">
               실시간 예약
