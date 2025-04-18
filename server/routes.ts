@@ -74,14 +74,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createAvailability({
           date: dateStr,
           timeSlot: "morning",
-          capacity: 20,
+          capacity: 30,
           reserved: 0,
         });
         
         await storage.createAvailability({
           date: dateStr,
           timeSlot: "afternoon",
-          capacity: 20,
+          capacity: 30,
           reserved: 0,
         });
       }
