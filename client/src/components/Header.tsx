@@ -11,26 +11,28 @@ const Header = () => {
         </div>
       </div>
       <header className="bg-white shadow-md">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-5">
             <Link href="/" className="flex items-center">
               <img 
                 src={forestLogo} 
                 alt="아름유아 숲 체험원 로고" 
-                className="mr-3 h-12 w-12"
+                className="mr-3 h-20 w-auto"
               />
-              <h1 className="text-xl md:text-2xl font-bold text-green-700">아름유아 숲 체험원</h1>
-            </Link>
-            <Link href="/" className="text-red-600 px-4 py-2 rounded bg-red-100 hover:bg-red-200 font-medium">
-              실시간 예약
+              <h1 className="text-xl md:text-3xl font-bold text-green-700">아름유아 숲 체험원</h1>
             </Link>
           </div>
-          <nav className="hidden md:block">
-            <ul className="flex space-x-6">
-              <li><Link href="/program" className="text-neutral-dark hover:text-primary">아름 유아숲 체험원 프로그램</Link></li>
-              <li><Link href="/" className="text-neutral-dark hover:text-primary">예약하기</Link></li>
-            </ul>
-          </nav>
+          <div className="flex items-center">
+            <Link href="/" className="text-red-600 px-4 py-2 rounded bg-red-100 hover:bg-red-200 font-medium mr-4 hidden md:block">
+              실시간 예약
+            </Link>
+            <nav className="hidden md:block">
+              <ul className="flex space-x-6">
+                <li><Link href="/program" className="text-neutral-dark hover:text-primary">아름 유아숲 체험원 프로그램</Link></li>
+                <li><Link href="/" className="text-neutral-dark hover:text-primary">예약하기</Link></li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </header>
     </>

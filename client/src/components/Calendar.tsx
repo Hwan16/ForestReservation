@@ -187,10 +187,6 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
           <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
           <span className="text-sm">예약불가</span>
         </div>
-        <div className="flex items-center">
-          <div className="w-4 h-4 bg-primary rounded-md mr-2"></div>
-          <span className="text-sm">선택일</span>
-        </div>
       </div>
     </div>
   );
