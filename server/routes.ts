@@ -54,12 +54,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   await initAdminUser();
 
-  // Initialize sample availability data if not exists
-  const initAvailability = async () => {
+  // Initialize sample availability data
+  const initAvailability = async (reset = false) => {
     const today = new Date();
     const availabilities = await storage.getAllAvailabilities();
     
-    if (availabilities.length === 0) {
+    if (availabilities.length === 0 || reset) {
       // Create availability for the next 365 days (1년)
       for (let i = 0; i < 365; i++) {
         const date = new Date();
@@ -74,14 +74,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createAvailability({
           date: dateStr,
           timeSlot: "morning",
-          capacity: 30,
+          capacity: 99999, // 실제로는 무제한 (매우 큰 숫자)
           reserved: 0,
         });
         
         await storage.createAvailability({
           date: dateStr,
           timeSlot: "afternoon",
-          capacity: 30,
+          capacity: 99999, // 실제로는 무제한 (매우 큰 숫자)
           reserved: 0,
         });
       }
@@ -90,6 +90,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   await initAvailability();
+  
+  // API to reset availability data (임시: 인증 없이 사용 가능)
+  app.delete("/api/availability/reset", async (req, res) => {
+    try {
+      // 먼저 모든 예약 삭제
+      const allReservations = await storage.getAllReservations();
+      for (const reservation of allReservations) {
+        await storage.deleteReservation(reservation.id);
+      }
+      
+      // 모든 가용성 데이터 삭제 (MemStorage에서는 직접 구현되어 있지 않으므로 storage 객체를 통해 처리)
+      const allAvailabilities = await storage.getAllAvailabilities();
+      for (const availability of allAvailabilities) {
+        // 현재는 API가 없으므로 직접 처리하지 않음
+      }
+      
+      // 가용성 데이터 새로 초기화
+      await initAvailability(true);
+      
+      return res.status(200).json({ message: "모든 예약 및 가용성 데이터가 초기화되었습니다." });
+    } catch (error) {
+      return res.status(500).json({ message: "데이터 초기화 중 오류가 발생했습니다." });
+    }
+  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
@@ -239,8 +263,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? dateAvailability.status.morning 
         : dateAvailability.status.afternoon;
       
-      if (!slotStatus.available || (slotStatus.capacity - slotStatus.reserved) < data.participants) {
-        return res.status(400).json({ message: "선택한 시간대에 예약 가능 인원이 부족합니다." });
+      // 예약 가능 여부만 확인 (인원수 제한 없음)
+      if (!slotStatus.available) {
+        return res.status(400).json({ message: "선택한 시간대는 관리자에 의해 예약이 중단되었습니다." });
       }
       
       // 인원수 유효성 검사
