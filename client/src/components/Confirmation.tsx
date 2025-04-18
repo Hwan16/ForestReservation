@@ -10,8 +10,8 @@ interface ConfirmationProps {
 
 const Confirmation = ({ reservation }: ConfirmationProps) => {
   const timeLabel = reservation.timeSlot === "morning" 
-    ? "오전 (09:00 - 13:00)" 
-    : "오후 (14:00 - 18:00)";
+    ? "오전반 (09:00 - 13:00)" 
+    : <span className="text-blue-600 font-medium">오후반 (14:00 - 18:00)</span>;
   
   const reservationDate = new Date(reservation.date);
 
@@ -23,8 +23,7 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">예약이 완료되었습니다!</h2>
       <p className="text-gray-600 mb-2">예약 상세정보가 문자로 발송되었습니다.</p>
       <div className="bg-gray-50 rounded-lg p-4 my-4 inline-block text-left">
-        <p className="mb-2"><span className="font-medium">예약 일자:</span> {formatDate(reservationDate)}</p>
-        <p className="mb-2"><span className="font-medium">예약 시간:</span> {timeLabel}</p>
+        <p className="mb-2"><span className="font-medium">예약 일자 및 시간:</span> {formatDate(reservationDate)} / {timeLabel}</p>
         <p className="mb-2"><span className="font-medium">어린이집/유치원 이름:</span> {reservation.name}</p>
         <p className="mb-2"><span className="font-medium">원장님/선생님 성함:</span> {reservation.instName}</p>
         <p className="mb-2"><span className="font-medium">연락처:</span> {reservation.phone}</p>

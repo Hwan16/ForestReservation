@@ -125,13 +125,14 @@ const MyPage = () => {
                           </div>
                           <CardContent className="pt-4">
                             <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <p className="text-sm text-gray-500">예약일</p>
-                                <p>{formatDate(new Date(reservation.date))}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-500">시간</p>
-                                <p>{reservation.timeSlot === 'morning' ? '오전 (09:00 - 13:00)' : '오후 (14:00 - 18:00)'}</p>
+                              <div className="col-span-2">
+                                <p className="text-sm text-gray-500">예약일 및 시간</p>
+                                <p>
+                                  {formatDate(new Date(reservation.date))} / {' '}
+                                  {reservation.timeSlot === 'morning' 
+                                    ? '오전반 (09:00 - 13:00)' 
+                                    : <span className="text-blue-600 font-medium">오후반 (14:00 - 18:00)</span>}
+                                </p>
                               </div>
                               <div>
                                 <p className="text-sm text-gray-500">어린이집/유치원</p>

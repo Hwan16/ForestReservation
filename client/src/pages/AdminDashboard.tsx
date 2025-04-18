@@ -203,7 +203,9 @@ const AdminDashboard = () => {
 
   // 시간대 텍스트 반환
   const getTimeSlotText = (timeSlot: string) => {
-    return timeSlot === 'morning' ? '오전 (09:00 - 13:00)' : '오후 (14:00 - 18:00)';
+    return timeSlot === 'morning' 
+      ? '오전반 (09:00 - 13:00)' 
+      : <span className="text-blue-600 font-medium">오후반 (14:00 - 18:00)</span>;
   };
 
   // 달력 관련 변수
@@ -398,7 +400,7 @@ const AdminDashboard = () => {
                             onClick={() => handleDateSelection(day, 'morning')}
                           >
                             <div className="flex justify-between">
-                              <span>오전</span>
+                              <span>오전반</span>
                               <span>
                                 {availability ? `${availability.status.morning.reserved}/${availability.status.morning.capacity}` : '0/0'}
                               </span>
@@ -414,7 +416,7 @@ const AdminDashboard = () => {
                             onClick={() => handleDateSelection(day, 'afternoon')}
                           >
                             <div className="flex justify-between">
-                              <span>오후</span>
+                              <span>오후반</span>
                               <span>
                                 {availability ? `${availability.status.afternoon.reserved}/${availability.status.afternoon.capacity}` : '0/0'}
                               </span>
