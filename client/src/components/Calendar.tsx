@@ -48,6 +48,7 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
     const availability = availabilities.find(a => a.date === dateStr);
     if (!availability) return false;
     
+    // API 응답의 available 속성을 그대로 사용
     return availability.status.morning.available || availability.status.afternoon.available;
   };
 

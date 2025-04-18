@@ -33,20 +33,20 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
   const getMorningDetails = () => {
     if (isLoading || !availability) return { available: false, capacity: 0, reserved: 0 };
     const morningStatus = availability.status.morning;
-    // 예약 가능/불가능 여부를 용량과 현재 예약을 기반으로 계산
+    
+    // 가능/불가능 상태를 API 응답의 available 속성 그대로 사용
     return {
-      ...morningStatus,
-      available: morningStatus.capacity > morningStatus.reserved
+      ...morningStatus
     };
   };
 
   const getAfternoonDetails = () => {
     if (isLoading || !availability) return { available: false, capacity: 0, reserved: 0 };
     const afternoonStatus = availability.status.afternoon;
-    // 예약 가능/불가능 여부를 용량과 현재 예약을 기반으로 계산
+    
+    // 가능/불가능 상태를 API 응답의 available 속성 그대로 사용
     return {
-      ...afternoonStatus,
-      available: afternoonStatus.capacity > afternoonStatus.reserved
+      ...afternoonStatus
     };
   };
 
