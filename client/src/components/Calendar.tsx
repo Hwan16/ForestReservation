@@ -165,7 +165,7 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
                   <span 
                     className={`text-xs mt-1 ${isSelected ? 'text-white' : available ? 'text-green-600' : 'text-gray-400'}`}
                   >
-                    {available ? `현재 예약 인원: ${totalReservations}명` : '예약마감'}
+                    {available ? '예약가능' : '예약마감'}
                   </span>
                 )}
               </button>

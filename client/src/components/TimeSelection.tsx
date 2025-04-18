@@ -60,7 +60,14 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-medium text-lg">오전</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium text-lg">오전</h3>
+                {morningDetails.available ? (
+                  <span className="text-sm bg-green-100 text-green-800 py-1 px-2 rounded-full font-medium">예약 가능</span>
+                ) : (
+                  <span className="text-sm bg-gray-100 text-gray-600 py-1 px-2 rounded-full font-medium">예약 마감</span>
+                )}
+              </div>
               <p className="text-gray-600">09:00 - 13:00</p>
               <div className="mt-2 flex items-center">
                 <svg 
@@ -81,7 +88,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <span className="text-sm text-gray-600">
-                  예약 가능: {morningDetails.capacity - morningDetails.reserved}/{morningDetails.capacity}명
+                  현재 예약 인원: {morningDetails.reserved}/{morningDetails.capacity}명
                 </span>
               </div>
             </div>
@@ -99,7 +106,14 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-medium text-lg">오후</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium text-lg">오후</h3>
+                {afternoonDetails.available ? (
+                  <span className="text-sm bg-green-100 text-green-800 py-1 px-2 rounded-full font-medium">예약 가능</span>
+                ) : (
+                  <span className="text-sm bg-gray-100 text-gray-600 py-1 px-2 rounded-full font-medium">예약 마감</span>
+                )}
+              </div>
               <p className="text-gray-600">14:00 - 18:00</p>
               <div className="mt-2 flex items-center">
                 <svg 
@@ -120,7 +134,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <span className="text-sm text-gray-600">
-                  예약 가능: {afternoonDetails.capacity - afternoonDetails.reserved}/{afternoonDetails.capacity}명
+                  현재 예약 인원: {afternoonDetails.reserved}/{afternoonDetails.capacity}명
                 </span>
               </div>
             </div>
