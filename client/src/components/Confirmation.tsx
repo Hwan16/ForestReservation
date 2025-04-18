@@ -10,8 +10,8 @@ interface ConfirmationProps {
 
 const Confirmation = ({ reservation }: ConfirmationProps) => {
   const timeLabel = reservation.timeSlot === "morning" 
-    ? "오전 (09:00 - 12:00)" 
-    : "오후 (13:00 - 16:00)";
+    ? "오전 (09:00 - 13:00)" 
+    : "오후 (14:00 - 18:00)";
   
   const reservationDate = new Date(reservation.date);
 

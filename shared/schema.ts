@@ -16,7 +16,8 @@ export const reservations = pgTable("reservations", {
   reservationId: text("reservation_id").notNull().unique(),
   date: date("date").notNull(),
   timeSlot: text("time_slot").notNull(), // "morning" or "afternoon"
-  name: text("name").notNull(),
+  name: text("name").notNull(), // 어린이집/유치원 이름
+  instName: text("inst_name").notNull(), // 원장님/선생님 성함 
   phone: text("phone").notNull(),
   email: text("email"),
   participants: integer("participants").notNull(),
@@ -52,7 +53,8 @@ export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
 export const createReservationSchema = z.object({
   date: z.string(),
   timeSlot: z.enum(["morning", "afternoon"]),
-  name: z.string().min(1, "이름은 필수 입력 항목입니다."),
+  name: z.string().min(1, "어린이집/유치원 이름은 필수 입력 항목입니다."),
+  instName: z.string().min(1, "원장님/선생님 성함은 필수 입력 항목입니다."),
   phone: z.string().min(1, "연락처는 필수 입력 항목입니다."),
   email: z.string().email().optional().or(z.literal("")),
   participants: z.number().min(1, "최소 1명 이상이어야 합니다.").max(20, "최대 20명까지 예약 가능합니다."),

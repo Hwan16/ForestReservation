@@ -29,6 +29,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
       date: formatDateForApi(selectedDate),
       timeSlot: selectedTime,
       name: "",
+      instName: "",
       phone: "",
       email: "",
       participants: 1,

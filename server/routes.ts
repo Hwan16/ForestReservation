@@ -250,6 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: data.date,
         timeSlot: data.timeSlot,
         name: data.name,
+        instName: data.instName,
         phone: data.phone,
         email: data.email || null,
         participants: data.participants,

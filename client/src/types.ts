@@ -4,7 +4,8 @@ export type Reservation = {
   id: string;
   date: string;
   timeSlot: TimeSlot;
-  name: string;
+  name: string;  // 어린이집/유치원 이름
+  instName: string;  // 원장님/선생님 성함
   phone: string;
   email?: string;
   participants: number;
