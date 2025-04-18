@@ -32,7 +32,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
       instName: "",
       phone: "",
       email: "",
-      participants: 1,
+      participants: 10,
       notes: "",
     },
   });
@@ -128,9 +128,9 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>연락처 *</FormLabel>
+                <FormLabel>연락처 * <span className="text-sm text-gray-500 font-normal">(숫자만 입력)</span></FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="010-0000-0000" />
+                  <Input {...field} placeholder="01012345678" inputMode="numeric" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -200,7 +200,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
                       <path d="M12 5v14"/>
                     </svg>
                   </Button>
-                  <span className="ml-2 text-sm text-gray-600">(최대 20명)</span>
+
                 </div>
                 <FormMessage />
               </FormItem>
