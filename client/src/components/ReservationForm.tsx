@@ -31,7 +31,6 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
       name: "",
       instName: "",
       phone: "",
-      email: "",
       participants: 10,
       notes: "",
     },
@@ -207,19 +206,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
             )}
           />
           
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>이메일 (선택)</FormLabel>
-                <FormControl>
-                  <Input type="email" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
           
           <FormField
             control={form.control}
@@ -244,7 +231,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
             />
             <div className="ml-3 text-sm">
               <label htmlFor="terms" className="font-medium text-gray-700">개인정보 수집 및 이용에 동의합니다 *</label>
-              <p className="text-gray-500">제공하신 정보는 예약 확인 및 관리 목적으로만 사용됩니다.</p>
+              <p className="text-gray-500">제공하신 정보는 예약 확인 및 관리 목적으로만 사용되며, 체험 이후 바로 폐기됩니다.</p>
             </div>
           </div>
           
