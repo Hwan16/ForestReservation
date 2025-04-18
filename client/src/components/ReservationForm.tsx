@@ -21,7 +21,9 @@ interface ReservationFormProps {
 }
 
 const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: ReservationFormProps) => {
-  const timeLabel = selectedTime === "morning" ? "오전 (09:00 - 13:00)" : "오후 (14:00 - 18:00)";
+  const timeLabel = selectedTime === "morning" ? 
+    "오전반 (09:00 - 13:00)" : 
+    <span className="text-blue-600 font-medium">오후반 (14:00 - 18:00)</span>;
   
   const form = useForm({
     resolver: zodResolver(createReservationSchema),
@@ -127,7 +129,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
       <h2 className="text-xl font-semibold text-neutral-dark mb-4">예약 정보 입력</h2>
       <p className="mb-4">
-        선택하신 날짜 및 시간: <span className="font-medium">{formatDate(selectedDate)} {timeLabel}</span>
+        선택하신 날짜 및 시간: <span className="font-medium">{formatDate(selectedDate)} / {timeLabel}</span>
       </p>
       
       <Form {...form}>

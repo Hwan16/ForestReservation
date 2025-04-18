@@ -84,7 +84,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-center">
-                <h3 className="font-medium text-lg">오전</h3>
+                <h3 className="font-medium text-lg">오전반</h3>
                 {morningDetails.available ? (
                   <span className="text-sm bg-green-100 text-green-800 py-1 px-2 rounded-full font-medium">예약 가능</span>
                 ) : (
@@ -130,7 +130,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-center">
-                <h3 className="font-medium text-lg">오후</h3>
+                <h3 className="font-medium text-lg">오후반</h3>
                 {afternoonDetails.available ? (
                   <span className="text-sm bg-green-100 text-green-800 py-1 px-2 rounded-full font-medium">예약 가능</span>
                 ) : (
