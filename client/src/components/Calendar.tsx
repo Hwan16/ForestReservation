@@ -38,6 +38,9 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
   };
 
   const isDateAvailable = (day: Date) => {
+    // 일요일(0)은 항상 예약 불가
+    if (getDay(day) === 0) return false;
+    
     const dateStr = format(day, 'yyyy-MM-dd');
     
     if (!availabilities) return false;
@@ -48,11 +51,24 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
     return availability.status.morning.available || availability.status.afternoon.available;
   };
 
+  const getTotalReservations = (day: Date) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    
+    if (!availabilities) return 0;
+    
+    const availability = availabilities.find(a => a.date === dateStr);
+    if (!availability) return 0;
+    
+    return availability.status.morning.reserved + availability.status.afternoon.reserved;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-neutral-dark">{formatMonth(currentMonth)}</h2>
-        <div className="flex space-x-2">
+      <div className="flex flex-col items-center mb-6">
+        <h2 className="text-2xl font-bold text-center mb-4">실시간 예약</h2>
+        <h3 className="text-gray-500 text-center mb-6">Reservation</h3>
+        
+        <div className="flex justify-between items-center w-full">
           <Button 
             variant="ghost" 
             size="icon"
@@ -74,6 +90,9 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
               <path d="m15 18-6-6 6-6"/>
             </svg>
           </Button>
+          
+          <h2 className="text-xl font-semibold">{formatMonth(currentMonth)}</h2>
+          
           <Button 
             variant="ghost" 
             size="icon"
@@ -121,40 +140,56 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
         {daysInMonth.map((day, index) => {
           const available = isDateAvailable(day);
           const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+          const isSunday = getDay(day) === 0;
+          const totalReservations = getTotalReservations(day);
           
           return (
             <div key={index} className="calendar-day p-1 text-center">
               <button 
-                className={`w-full h-full flex flex-col justify-center items-center rounded-lg 
-                  ${available ? 'available' : 'unavailable'} 
-                  ${isSelected ? 'selected' : ''}`}
+                className={`w-full h-full flex flex-col justify-center items-center rounded-lg p-2
+                  ${isSelected ? 'bg-primary text-white' : ''} 
+                  ${!isSelected && available ? 'bg-green-50 border border-green-200 hover:bg-green-100' : ''} 
+                  ${!isSelected && !available && !isSunday ? 'bg-gray-50 border border-gray-200 text-gray-400' : ''}
+                  ${isSunday ? 'bg-red-50 border border-red-200 text-red-500' : ''}
+                  transition-colors`}
                 onClick={() => available && onSelectDate(day)}
-                disabled={!available}
+                disabled={!available || isSunday}
               >
-                <span className="text-sm md:text-base">{format(day, dateFormat)}</span>
-                <span 
-                  className={`text-xs ${isSelected ? 'text-white' : available ? 'text-green-600' : 'text-gray-400'} hidden md:inline-block`}
-                >
-                  {available ? '예약가능' : '예약마감'}
+                <span className={`text-sm md:text-base font-medium ${isSunday ? 'text-red-500' : ''}`}>
+                  {format(day, dateFormat)}
                 </span>
+                
+                {isSunday ? (
+                  <span className="text-xs text-red-500 mt-1">예약불가</span>
+                ) : (
+                  <span 
+                    className={`text-xs mt-1 ${isSelected ? 'text-white' : available ? 'text-green-600' : 'text-gray-400'}`}
+                  >
+                    {available ? `현재 예약 인원: ${totalReservations}명` : '예약마감'}
+                  </span>
+                )}
               </button>
             </div>
           );
         })}
       </div>
       
-      <div className="mt-4 flex justify-center space-x-8">
+      <div className="mt-6 flex flex-wrap justify-center gap-4">
         <div className="flex items-center">
-          <div className="w-4 h-4 bg-primary rounded-full mr-2"></div>
-          <span className="text-sm">예약 선택일</span>
+          <div className="w-4 h-4 bg-green-50 border border-green-200 rounded-md mr-2"></div>
+          <span className="text-sm">예약가능</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 bg-green-100 border border-green-600 rounded-full mr-2"></div>
-          <span className="text-sm">예약 가능</span>
+          <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded-md mr-2"></div>
+          <span className="text-sm">예약마감</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 bg-gray-100 rounded-full mr-2"></div>
-          <span className="text-sm">예약 마감</span>
+          <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
+          <span className="text-sm">예약불가</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-primary rounded-md mr-2"></div>
+          <span className="text-sm">선택일</span>
         </div>
       </div>
     </div>
