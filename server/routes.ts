@@ -60,8 +60,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const availabilities = await storage.getAllAvailabilities();
     
     if (availabilities.length === 0) {
-      // Create availability for the next 120 days (약 4개월)
-      for (let i = 0; i < 120; i++) {
+      // Create availability for the next 365 days (1년)
+      for (let i = 0; i < 365; i++) {
         const date = new Date();
         date.setDate(today.getDate() + i);
         
