@@ -203,7 +203,7 @@ const AdminDashboard = () => {
 
   // 시간대 텍스트 반환
   const getTimeSlotText = (timeSlot: string) => {
-    return timeSlot === 'morning' ? '오전 (09:00 - 12:00)' : '오후 (13:00 - 16:00)';
+    return timeSlot === 'morning' ? '오전 (09:00 - 13:00)' : '오후 (14:00 - 18:00)';
   };
 
   // 달력 관련 변수

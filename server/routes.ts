@@ -65,8 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const date = new Date();
         date.setDate(today.getDate() + i);
         
-        // Skip Mondays (closed day)
-        if (date.getDay() === 1) continue;
+        // Skip Sundays (closed day)
+        if (date.getDay() === 0) continue;
         
         const dateStr = date.toISOString().split('T')[0];
         

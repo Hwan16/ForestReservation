@@ -21,7 +21,7 @@ interface ReservationFormProps {
 }
 
 const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: ReservationFormProps) => {
-  const timeLabel = selectedTime === "morning" ? "오전 (09:00 - 12:00)" : "오후 (13:00 - 16:00)";
+  const timeLabel = selectedTime === "morning" ? "오전 (09:00 - 13:00)" : "오후 (14:00 - 18:00)";
   
   const form = useForm({
     resolver: zodResolver(createReservationSchema),
@@ -99,7 +99,21 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>이름 *</FormLabel>
+                <FormLabel>어린이집/유치원 이름 *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="instName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>원장님/선생님 성함 *</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>

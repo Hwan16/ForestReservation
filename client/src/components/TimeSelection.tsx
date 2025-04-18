@@ -61,7 +61,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
             </div>
             <div className="flex-1">
               <h3 className="font-medium text-lg">오전</h3>
-              <p className="text-gray-600">09:00 - 12:00</p>
+              <p className="text-gray-600">09:00 - 13:00</p>
               <div className="mt-2 flex items-center">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -100,7 +100,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
             </div>
             <div className="flex-1">
               <h3 className="font-medium text-lg">오후</h3>
-              <p className="text-gray-600">13:00 - 16:00</p>
+              <p className="text-gray-600">14:00 - 18:00</p>
               <div className="mt-2 flex items-center">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
