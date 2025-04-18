@@ -32,12 +32,22 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
   // Format details for UI display
   const getMorningDetails = () => {
     if (isLoading || !availability) return { available: false, capacity: 0, reserved: 0 };
-    return availability.status.morning;
+    const morningStatus = availability.status.morning;
+    // 예약 가능/불가능 여부를 용량과 현재 예약을 기반으로 계산
+    return {
+      ...morningStatus,
+      available: morningStatus.capacity > morningStatus.reserved
+    };
   };
 
   const getAfternoonDetails = () => {
     if (isLoading || !availability) return { available: false, capacity: 0, reserved: 0 };
-    return availability.status.afternoon;
+    const afternoonStatus = availability.status.afternoon;
+    // 예약 가능/불가능 여부를 용량과 현재 예약을 기반으로 계산
+    return {
+      ...afternoonStatus,
+      available: afternoonStatus.capacity > afternoonStatus.reserved
+    };
   };
 
   const morningDetails = getMorningDetails();
