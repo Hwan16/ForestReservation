@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,10 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   
   // 선택된 날짜를 현지 시간대 기준으로 정확하게 format
-  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const year = selectedDate.getFullYear();
+  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+  const day = String(selectedDate.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
   console.log("TimeSelection - dateStr:", dateStr, "day of week:", selectedDate.getDay(), "raw date:", selectedDate);
   
   const { data: availability, isLoading } = useQuery<DayAvailability>({
