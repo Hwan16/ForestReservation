@@ -156,7 +156,12 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
                   ${!isSelected && !available && !isSunday ? 'bg-gray-50 border border-gray-200 text-gray-400' : ''}
                   ${isSunday ? 'bg-red-50 border border-red-200 text-red-500' : ''}
                   transition-colors`}
-                onClick={() => available && onSelectDate(day)}
+                onClick={() => {
+                  if (available) {
+                    console.log("Calendar - Selected date:", format(day, 'yyyy-MM-dd'), "day:", getDay(day));
+                    onSelectDate(day);
+                  }
+                }}
                 disabled={!available || isSunday}
               >
                 <span className={`text-sm md:text-base font-medium ${isSunday ? 'text-red-500' : ''}`}>

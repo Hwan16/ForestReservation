@@ -13,8 +13,9 @@ interface TimeSelectionProps {
 const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProps) => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   
-  const dateStr = selectedDate.toISOString().split('T')[0];
-  console.log("TimeSelection - dateStr:", dateStr, "day of week:", selectedDate.getDay());
+  // 선택된 날짜를 현지 시간대 기준으로 정확하게 format
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  console.log("TimeSelection - dateStr:", dateStr, "day of week:", selectedDate.getDay(), "raw date:", selectedDate);
   
   const { data: availability, isLoading } = useQuery<DayAvailability>({
     queryKey: [`/api/availability/date/${dateStr}`],
