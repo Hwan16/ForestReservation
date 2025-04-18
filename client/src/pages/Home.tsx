@@ -41,39 +41,41 @@ const Home = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
+      <main className="flex-1 bg-gray-50">
+        <div className="container mx-auto px-4 pb-12">
           <StepsIndicator currentStep={currentStep} />
           
-          {currentStep === "date" && (
-            <Calendar 
-              onSelectDate={handleDateSelect}
-              selectedDate={selectedDate}
-            />
-          )}
+          <div className="max-w-3xl mx-auto">
+            {currentStep === "date" && (
+              <Calendar 
+                onSelectDate={handleDateSelect}
+                selectedDate={selectedDate}
+              />
+            )}
 
-          {currentStep === "time" && selectedDate && (
-            <TimeSelection 
-              selectedDate={selectedDate}
-              onSelectTime={handleTimeSelect}
-              onBack={handleBackToDate}
-            />
-          )}
+            {currentStep === "time" && selectedDate && (
+              <TimeSelection 
+                selectedDate={selectedDate}
+                onSelectTime={handleTimeSelect}
+                onBack={handleBackToDate}
+              />
+            )}
 
-          {currentStep === "info" && selectedDate && selectedTime && (
-            <ReservationForm 
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              onBack={handleBackToTime}
-              onComplete={handleReservationComplete}
-            />
-          )}
+            {currentStep === "info" && selectedDate && selectedTime && (
+              <ReservationForm 
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                onBack={handleBackToTime}
+                onComplete={handleReservationComplete}
+              />
+            )}
 
-          {currentStep === "confirmation" && reservation && (
-            <Confirmation 
-              reservation={reservation}
-            />
-          )}
+            {currentStep === "confirmation" && reservation && (
+              <Confirmation 
+                reservation={reservation}
+              />
+            )}
+          </div>
         </div>
       </main>
       
