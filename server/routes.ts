@@ -170,6 +170,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "예약 가능 정보를 불러오는 중 오류가 발생했습니다." });
     }
   });
+  
+  // 관리자용 가용성 업데이트 API
+  app.patch("/api/availability/update", isAuthenticated, async (req, res) => {
+    try {
+      const { date, timeSlot, capacity, available } = req.body;
+      
+      if (!date || !timeSlot || capacity === undefined || available === undefined) {
+        return res.status(400).json({ message: "필수 필드가 누락되었습니다." });
+      }
+      
+      if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return res.status(400).json({ message: "잘못된 날짜 형식입니다. YYYY-MM-DD 형식을 사용하세요." });
+      }
+      
+      if (timeSlot !== 'morning' && timeSlot !== 'afternoon') {
+        return res.status(400).json({ message: "시간대는 'morning' 또는 'afternoon'이어야 합니다." });
+      }
+      
+      if (typeof capacity !== 'number' || capacity < 0) {
+        return res.status(400).json({ message: "용량은 0 이상의 숫자여야 합니다." });
+      }
+      
+      // 현재 가용성 확인
+      const currentAvailability = await storage.getAvailabilityByDate(date);
+      const currentSlot = currentAvailability?.status[timeSlot];
+      
+      if (!currentSlot) {
+        // 가용성 데이터가 없으면 새로 생성
+        await storage.createAvailability({
+          date,
+          timeSlot,
+          capacity,
+          reserved: 0
+        });
+      } else {
+        // 기존 가용성 업데이트
+        await storage.updateAvailability(date, timeSlot, (current) => ({
+          ...current,
+          capacity,
+          // 현재 예약된 수가 새 용량보다 많으면 가용성을 false로 설정
+          available: available && current.reserved <= capacity
+        }));
+      }
+      
+      // 업데이트된 가용성 반환
+      const updatedAvailability = await storage.getAvailabilityByDate(date);
+      return res.status(200).json(updatedAvailability);
+    } catch (error) {
+      return res.status(500).json({ message: "가용성 업데이트 중 오류가 발생했습니다." });
+    }
+  });
 
   // Reservation routes
   app.post("/api/reservations", async (req, res) => {
@@ -227,6 +278,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(reservations);
     } catch (error) {
       return res.status(500).json({ message: "예약 정보를 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+  
+  // 마이페이지 예약 검색 API
+  app.get("/api/reservations/search", async (req, res) => {
+    try {
+      const { name, phone } = req.query;
+      
+      if (!name || !phone) {
+        return res.status(400).json({ message: "이름과 전화번호를 모두 입력해주세요." });
+      }
+      
+      // 모든 예약 가져오기
+      const allReservations = await storage.getAllReservations();
+      
+      // 이름과 전화번호로 필터링
+      const filteredReservations = allReservations.filter(
+        reservation => 
+          reservation.name === name && 
+          reservation.phone === phone
+      );
+      
+      return res.status(200).json(filteredReservations);
+    } catch (error) {
+      return res.status(500).json({ message: "예약 검색 중 오류가 발생했습니다." });
     }
   });
 

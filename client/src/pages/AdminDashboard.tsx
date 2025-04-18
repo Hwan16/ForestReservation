@@ -39,6 +39,18 @@ const AdminDashboard = () => {
   // 사용자 인증 확인
   const { data: user, isLoading: authLoading, isError: authError } = useQuery({
     queryKey: ['/api/auth/me'],
+    gcTime: 0,
+    retry: false,
+    onSuccess: (data) => {
+      if (!data || !data.isAdmin) {
+        toast({
+          title: '인증 오류',
+          description: '관리자 권한이 필요합니다.',
+          variant: 'destructive',
+        });
+        setLocation('/');
+      }
+    },
     onError: () => {
       toast({
         title: '인증 오류',
@@ -46,7 +58,7 @@ const AdminDashboard = () => {
         variant: 'destructive',
       });
       setLocation('/');
-    },
+    }
   });
 
   // 모든 예약 가져오기
