@@ -21,7 +21,7 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
         <CheckCircle className="text-green-600 h-10 w-10" />
       </div>
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">예약이 완료되었습니다!</h2>
-      <p className="text-gray-600 mb-2">예약 상세정보가 문자로 발송되었습니다.</p>
+      <p className="text-gray-600 mb-2">상단의 마이페이지에서 예약 내역 확인이 가능합니다.</p>
       <div className="bg-gray-50 rounded-lg p-4 my-4 inline-block text-left">
         <p className="mb-2"><span className="font-medium">예약 일자 및 시간:</span> {formatDate(reservationDate)} / {timeLabel}</p>
         <p className="mb-2"><span className="font-medium">어린이집/유치원 이름:</span> {reservation.name}</p>
@@ -29,7 +29,6 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
         <p className="mb-2"><span className="font-medium">연락처:</span> {reservation.phone}</p>
         <p><span className="font-medium">참여 어린이 인원수:</span> {reservation.participants}명</p>
       </div>
-      <p className="text-gray-600 mb-6">예약번호: <span className="font-semibold">{reservation.id}</span></p>
       <Link href="/">
         <Button className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
           홈으로 돌아가기

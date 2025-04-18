@@ -121,7 +121,7 @@ const MyPage = () => {
                       {reservations.map((reservation) => (
                         <Card key={reservation.id} className="overflow-hidden">
                           <div className="bg-primary text-white py-2 px-4">
-                            <p className="font-semibold">예약번호: {reservation.id}</p>
+                            <p className="font-semibold">예약 정보</p>
                           </div>
                           <CardContent className="pt-4">
                             <div className="grid grid-cols-2 gap-2">
