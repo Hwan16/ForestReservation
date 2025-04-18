@@ -49,6 +49,13 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
       ...afternoonStatus
     };
   };
+  
+  // API 데이터 디버깅용 콘솔 로그
+  useEffect(() => {
+    if (availability) {
+      console.log(`TimeSelection - Date: ${dateStr}`, availability);
+    }
+  }, [availability, dateStr]);
 
   const morningDetails = getMorningDetails();
   const afternoonDetails = getAfternoonDetails();
