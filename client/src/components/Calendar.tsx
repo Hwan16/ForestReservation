@@ -38,10 +38,11 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
   };
 
   const isDateAvailable = (day: Date) => {
-    // 일요일(0)만 예약 불가로 설정하고 월요일(1)은 예약 가능
+    // 일요일(0)만 예약 불가로 설정하고 월요일(1)을 포함한 다른 요일은 예약 가능
     if (getDay(day) === 0) return false;
     
     const dateStr = format(day, 'yyyy-MM-dd');
+    console.log("Calendar - checking date:", dateStr, "day:", getDay(day));
     
     if (!availabilities) return false;
     
@@ -49,7 +50,9 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
     if (!availability) return false;
     
     // API 응답의 available 속성을 그대로 사용
-    return availability.status.morning.available || availability.status.afternoon.available;
+    const isAvailable = availability.status.morning.available || availability.status.afternoon.available;
+    console.log("Calendar - availability for", dateStr, ":", isAvailable);
+    return isAvailable;
   };
 
   const getTotalReservations = (day: Date) => {

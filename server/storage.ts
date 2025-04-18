@@ -140,11 +140,16 @@ export class MemStorage implements IStorage {
       const morning = availabilities.find(a => a.timeSlot === "morning");
       const afternoon = availabilities.find(a => a.timeSlot === "afternoon");
       
+      // Date 객체로 변환하여 요일 확인 (일요일 = 0)
+      const dayOfWeek = new Date(date).getDay();
+      // 일요일(0)인 경우 무조건 예약 불가능
+      const isSunday = dayOfWeek === 0;
+      
       result.push({
         date,
         status: {
           morning: morning ? {
-            available: morning.capacity > morning.reserved,
+            available: !isSunday && morning.capacity > morning.reserved,
             capacity: morning.capacity,
             reserved: morning.reserved,
           } : {
@@ -153,7 +158,7 @@ export class MemStorage implements IStorage {
             reserved: 0,
           },
           afternoon: afternoon ? {
-            available: afternoon.capacity > afternoon.reserved,
+            available: !isSunday && afternoon.capacity > afternoon.reserved,
             capacity: afternoon.capacity,
             reserved: afternoon.reserved,
           } : {
@@ -176,11 +181,18 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
+    // Date 객체로 변환하여 요일 확인 (일요일 = 0)
+    const dayOfWeek = new Date(date).getDay();
+    console.log(`getAvailabilityByDate - date: ${date}, day: ${dayOfWeek}`);
+    
+    // 일요일(0)인 경우 무조건 예약 불가능
+    const isSunday = dayOfWeek === 0;
+    
     return {
       date,
       status: {
         morning: morning ? {
-          available: morning.capacity > morning.reserved,
+          available: !isSunday && morning.capacity > morning.reserved,
           capacity: morning.capacity,
           reserved: morning.reserved,
         } : {
@@ -189,7 +201,7 @@ export class MemStorage implements IStorage {
           reserved: 0,
         },
         afternoon: afternoon ? {
-          available: afternoon.capacity > afternoon.reserved,
+          available: !isSunday && afternoon.capacity > afternoon.reserved,
           capacity: afternoon.capacity,
           reserved: afternoon.reserved,
         } : {

@@ -69,6 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (date.getDay() === 0) continue;
         
         const dateStr = date.toISOString().split('T')[0];
+        console.log("Creating availability for:", dateStr, "day:", date.getDay());
         
         await storage.createAvailability({
           date: dateStr,

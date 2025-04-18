@@ -14,6 +14,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   
   const dateStr = selectedDate.toISOString().split('T')[0];
+  console.log("TimeSelection - dateStr:", dateStr, "day of week:", selectedDate.getDay());
   
   const { data: availability, isLoading } = useQuery<DayAvailability>({
     queryKey: [`/api/availability/date/${dateStr}`],
