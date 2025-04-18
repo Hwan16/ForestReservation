@@ -30,7 +30,7 @@ export const availability = pgTable("availability", {
   id: serial("id").primaryKey(),
   date: date("date").notNull(),
   timeSlot: text("time_slot").notNull(), // "morning" or "afternoon"
-  capacity: integer("capacity").notNull().default(20),
+  capacity: integer("capacity").notNull().default(30),
   reserved: integer("reserved").notNull().default(0),
 });
 
@@ -59,7 +59,7 @@ export const createReservationSchema = z.object({
   participants: z.number({
     required_error: "인원수는 필수 입력 항목입니다.",
     invalid_type_error: "인원수는 숫자로 입력해야 합니다."
-  }).min(1, "최소 1명 이상이어야 합니다.").max(20, "최대 20명까지 예약 가능합니다."),
+  }).min(1, "최소 1명 이상이어야 합니다.").max(30, "최대 30명까지 예약 가능합니다."),
   notes: z.string().optional().or(z.literal("")),
 });
 

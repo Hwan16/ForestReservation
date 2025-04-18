@@ -113,7 +113,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
 
   const increaseParticipants = () => {
     const current = form.getValues("participants");
-    if (current < 20) {
+    if (current < 30) {
       form.setValue("participants", current + 1);
     }
   };
@@ -215,7 +215,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
                         onChange(val);
                       }}
                       min={0}
-                      max={20}
+                      max={30}
                       {...rest}
                     />
                   </FormControl>
