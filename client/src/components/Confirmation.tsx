@@ -25,9 +25,10 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
       <div className="bg-gray-50 rounded-lg p-4 my-4 inline-block text-left">
         <p className="mb-2"><span className="font-medium">예약 일자:</span> {formatDate(reservationDate)}</p>
         <p className="mb-2"><span className="font-medium">예약 시간:</span> {timeLabel}</p>
-        <p className="mb-2"><span className="font-medium">이름:</span> {reservation.name}</p>
+        <p className="mb-2"><span className="font-medium">어린이집/유치원 이름:</span> {reservation.name}</p>
+        <p className="mb-2"><span className="font-medium">원장님/선생님 성함:</span> {reservation.instName}</p>
         <p className="mb-2"><span className="font-medium">연락처:</span> {reservation.phone}</p>
-        <p><span className="font-medium">인원수:</span> {reservation.participants}명</p>
+        <p><span className="font-medium">참여 어린이 인원수:</span> {reservation.participants}명</p>
       </div>
       <p className="text-gray-600 mb-6">예약번호: <span className="font-semibold">{reservation.id}</span></p>
       <Link href="/">

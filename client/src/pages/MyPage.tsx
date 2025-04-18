@@ -131,14 +131,18 @@ const MyPage = () => {
                               </div>
                               <div>
                                 <p className="text-sm text-gray-500">시간</p>
-                                <p>{reservation.timeSlot === 'morning' ? '오전' : '오후'}</p>
+                                <p>{reservation.timeSlot === 'morning' ? '오전 (09:00 - 13:00)' : '오후 (14:00 - 18:00)'}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-500">이름</p>
+                                <p className="text-sm text-gray-500">어린이집/유치원</p>
                                 <p>{reservation.name}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-500">인원</p>
+                                <p className="text-sm text-gray-500">담당자</p>
+                                <p>{reservation.instName}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">참여 인원</p>
                                 <p>{reservation.participants}명</p>
                               </div>
                               <div className="col-span-2">

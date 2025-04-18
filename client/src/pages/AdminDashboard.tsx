@@ -617,7 +617,8 @@ const ReservationTable = ({ reservations, isLoading, onDeleteClick }: Reservatio
           <TableHead>예약번호</TableHead>
           <TableHead>날짜</TableHead>
           <TableHead>시간</TableHead>
-          <TableHead>이름</TableHead>
+          <TableHead>어린이집/유치원</TableHead>
+          <TableHead>담당자</TableHead>
           <TableHead>연락처</TableHead>
           <TableHead>인원</TableHead>
           <TableHead>예약일</TableHead>
@@ -633,6 +634,7 @@ const ReservationTable = ({ reservations, isLoading, onDeleteClick }: Reservatio
               {reservation.timeSlot === 'morning' ? '오전' : '오후'}
             </TableCell>
             <TableCell>{reservation.name}</TableCell>
+            <TableCell>{reservation.instName}</TableCell>
             <TableCell>{reservation.phone}</TableCell>
             <TableCell>{reservation.participants}명</TableCell>
             <TableCell>{new Date(reservation.createdAt).toLocaleDateString()}</TableCell>
