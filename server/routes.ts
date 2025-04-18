@@ -242,6 +242,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "선택한 시간대에 예약 가능 인원이 부족합니다." });
       }
       
+      // 인원수 유효성 검사
+      if (data.participants === undefined || data.participants === null || data.participants < 1) {
+        return res.status(400).json({ message: "인원수는 최소 1명 이상이어야 합니다." });
+      }
+      
       // Create reservation
       const reservationId = generateReservationId();
       
@@ -252,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: data.name,
         instName: data.instName,
         phone: data.phone,
-        email: data.email || null,
+        email: null, // 이메일 필드 제거
         participants: data.participants,
         notes: data.notes || null,
         createdAt: new Date().toISOString(),

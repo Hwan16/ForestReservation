@@ -56,8 +56,10 @@ export const createReservationSchema = z.object({
   name: z.string().min(1, "어린이집/유치원 이름은 필수 입력 항목입니다."),
   instName: z.string().min(1, "원장님/선생님 성함은 필수 입력 항목입니다."),
   phone: z.string().min(1, "연락처는 필수 입력 항목입니다."),
-  email: z.string().email().optional().or(z.literal("")),
-  participants: z.number().min(1, "최소 1명 이상이어야 합니다.").max(20, "최대 20명까지 예약 가능합니다."),
+  participants: z.number({
+    required_error: "인원수는 필수 입력 항목입니다.",
+    invalid_type_error: "인원수는 숫자로 입력해야 합니다."
+  }).min(1, "최소 1명 이상이어야 합니다.").max(20, "최대 20명까지 예약 가능합니다."),
   notes: z.string().optional().or(z.literal("")),
 });
 

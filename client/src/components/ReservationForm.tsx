@@ -68,6 +68,44 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
       });
       return;
     }
+    
+    // 필수 필드 유효성 검사
+    if (!data.name) {
+      toast({
+        title: "입력 오류",
+        description: "어린이집/유치원 이름은 필수 입력 항목입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!data.instName) {
+      toast({
+        title: "입력 오류",
+        description: "원장님/선생님 성함은 필수 입력 항목입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!data.phone) {
+      toast({
+        title: "입력 오류",
+        description: "연락처는 필수 입력 항목입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (data.participants === '' || data.participants === undefined || data.participants < 1) {
+      toast({
+        title: "입력 오류",
+        description: "인원수는 최소 1명 이상이어야 합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     mutate(data);
   };
 
@@ -80,7 +118,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
 
   const decreaseParticipants = () => {
     const current = form.getValues("participants");
-    if (current > 1) {
+    if (current >= 1) {
       form.setValue("participants", current - 1);
     }
   };
@@ -170,8 +208,11 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
                       type="number" 
                       className="w-16 text-center border-t border-b border-gray-300 py-1 rounded-none"
                       value={value}
-                      onChange={(e) => onChange(parseInt(e.target.value) || 1)}
-                      min={1}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                        onChange(val);
+                      }}
+                      min={0}
                       max={20}
                       {...rest}
                     />
@@ -213,7 +254,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
             name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>요청사항 (선택)</FormLabel>
+                <FormLabel>특이사항 (선택)</FormLabel>
                 <FormControl>
                   <Textarea rows={3} {...field} />
                 </FormControl>
