@@ -111,7 +111,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <span className="text-sm text-gray-600">
-                  현재 예약 인원: {morningDetails.reserved}/{morningDetails.capacity}명
+                  현재 예약 인원: {morningDetails.reserved}명
                 </span>
               </div>
             </div>
@@ -157,7 +157,7 @@ const TimeSelection = ({ selectedDate, onSelectTime, onBack }: TimeSelectionProp
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <span className="text-sm text-gray-600">
-                  현재 예약 인원: {afternoonDetails.reserved}/{afternoonDetails.capacity}명
+                  현재 예약 인원: {afternoonDetails.reserved}명
                 </span>
               </div>
             </div>

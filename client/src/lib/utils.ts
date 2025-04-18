@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: Date): string {
-  return format(date, "yyyy년 MM월 dd일", { locale: ko });
+  return format(date, "yyyy년 MM월 dd일 (E)", { locale: ko });
 }
 
 export function formatMonth(date: Date): string {
