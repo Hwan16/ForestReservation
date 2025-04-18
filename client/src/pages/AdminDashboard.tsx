@@ -549,7 +549,7 @@ const AdminDashboard = () => {
           <DialogHeader>
             <DialogTitle>예약 가능 설정</DialogTitle>
             <DialogDescription>
-              {selectedDate && `${formatDate(selectedDate)} ${selectedTimeSlot === 'morning' ? '오전' : '오후'} 시간대의 예약 가능 설정을 변경합니다.`}
+              {selectedDate && `${formatDate(selectedDate)} ${selectedTimeSlot === 'morning' ? '오전반' : '오후반'} 시간대의 예약 가능 설정을 변경합니다.`}
             </DialogDescription>
           </DialogHeader>
           
@@ -633,7 +633,7 @@ const ReservationTable = ({ reservations, isLoading, onDeleteClick }: Reservatio
             <TableCell className="font-medium">{reservation.id}</TableCell>
             <TableCell>{formatDate(new Date(reservation.date))}</TableCell>
             <TableCell>
-              {reservation.timeSlot === 'morning' ? '오전' : '오후'}
+              {reservation.timeSlot === 'morning' ? '오전반' : '오후반'}
             </TableCell>
             <TableCell>{reservation.name}</TableCell>
             <TableCell>{reservation.instName}</TableCell>
