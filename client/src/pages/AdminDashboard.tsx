@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Calendar from '@/components/Calendar';
 import { 
   format, 
   startOfMonth, 
@@ -304,51 +305,30 @@ const AdminDashboard = () => {
           {/* 캘린더 뷰 */}
           <TabsContent value="calendar">
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={onPrevMonth}
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className="w-5 h-5"
-                  >
-                    <path d="m15 18-6-6 6-6"/>
-                  </svg>
-                </Button>
-                
-                <h2 className="text-xl font-semibold">{formatMonth(currentMonth)}</h2>
-                
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={onNextMonth}
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className="w-5 h-5"
-                  >
-                    <path d="m9 18 6-6-6-6"/>
-                  </svg>
-                </Button>
-              </div>
+              {/* 관리자용 캘린더 컴포넌트 */}
+              <Calendar 
+                onSelectDate={(date) => {
+                  setSelectedDate(date);
+                  
+                  // 예약 리스트 다이얼로그 표시
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  const dateReservations = reservations?.filter(r => r.date === dateStr) || [];
+                  
+                  if (dateReservations.length > 0) {
+                    // 선택한 날짜의 모든 예약 정보를 저장하고 다이얼로그 표시
+                    setSelectedDateReservations(dateReservations);
+                    setShowDateReservationsDialog(true);
+                  } else {
+                    toast({
+                      title: '알림',
+                      description: '선택한 날짜에 예약이 없습니다.',
+                    });
+                  }
+                }}
+                selectedDate={selectedDate}
+                isAdminMode={true}
+                reservations={reservations || []}
+              />
               
               {/* 요일 */}
               <div className="grid grid-cols-7 gap-1 mb-2 text-center">
@@ -590,6 +570,75 @@ const AdminDashboard = () => {
             </Button>
             <Button onClick={confirmAvailabilityUpdate} disabled={isUpdatingAvailability}>
               {isUpdatingAvailability ? '저장 중...' : '저장'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 날짜별 예약 목록 다이얼로그 */}
+      <Dialog open={showDateReservationsDialog} onOpenChange={setShowDateReservationsDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate && `${formatDate(selectedDate)} 예약 목록`}
+            </DialogTitle>
+            <DialogDescription>
+              선택한 날짜에 대한 모든 예약 정보입니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="overflow-x-auto max-h-[60vh]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>예약번호</TableHead>
+                  <TableHead>시간</TableHead>
+                  <TableHead>이름</TableHead>
+                  <TableHead>담당자</TableHead>
+                  <TableHead>인원</TableHead>
+                  <TableHead>연락처</TableHead>
+                  <TableHead>이메일</TableHead>
+                  <TableHead>관리</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedDateReservations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">예약 내역이 없습니다.</TableCell>
+                  </TableRow>
+                ) : (
+                  selectedDateReservations.map((reservation) => (
+                    <TableRow key={reservation.id}>
+                      <TableCell className="font-medium">{reservation.id.substring(0, 8)}</TableCell>
+                      <TableCell>{reservation.timeSlot === 'morning' ? '오전반' : '오후반'}</TableCell>
+                      <TableCell>{reservation.name}</TableCell>
+                      <TableCell>{reservation.instName}</TableCell>
+                      <TableCell>{reservation.participants}명</TableCell>
+                      <TableCell>{reservation.phone}</TableCell>
+                      <TableCell>{reservation.email || '-'}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedReservation(reservation);
+                            setShowDateReservationsDialog(false);
+                            setShowDeleteDialog(true);
+                          }}
+                        >
+                          삭제
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setShowDateReservationsDialog(false)}>
+              닫기
             </Button>
           </DialogFooter>
         </DialogContent>
