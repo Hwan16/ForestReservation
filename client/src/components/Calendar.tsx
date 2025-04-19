@@ -19,12 +19,22 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
   // 관리자 모드 상태 로깅
   console.log("Calendar - isAdminMode:", isAdminMode, "rendered at:", new Date().toISOString());
   
+  // 받은 예약 데이터 전체 로깅 (디버깅용)
+  console.log("Calendar - 전달받은 예약 데이터:", reservations.length, "건");
+  if (reservations.length > 0) {
+    console.log("Calendar - 예약 첫 번째 항목:", reservations[0]);
+    
+    // 2025-04-22 날짜에 대한 예약 확인
+    const testDateStr = '2025-04-22';
+    const testDateReservations = reservations.filter(r => r.date === testDateStr);
+    console.log(`Calendar - ${testDateStr} 예약:`, testDateReservations.length, "건");
+    testDateReservations.forEach((r, i) => console.log(`  예약 ${i+1}:`, r.timeSlot, r.participants, "명"));
+  }
+  
   // 관리자 모드일 경우 더 자주 갱신
   const { data: availabilities, isLoading, refetch: refetchAvailabilities } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
     refetchInterval: 3000, // 3초마다 자동 갱신
-    staleTime: 0, // 항상 새로운 데이터를 가져오도록 설정
-    cacheTime: 0, // 캐시를 사용하지 않음
     refetchOnMount: true, // 컴포넌트가 마운트될 때마다 다시 가져오기
     refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 다시 가져오기
   });
@@ -72,7 +82,11 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     
     if (!availabilities) return false;
     
-    const availability = availabilities.find(a => a.date === dateStr);
+    // 타입 안전하게 변경
+    const availability = Array.isArray(availabilities) 
+      ? availabilities.find((a: DayAvailability) => a.date === dateStr) 
+      : null;
+    
     if (!availability) return false;
     
     // API 응답의 available 속성을 그대로 사용
