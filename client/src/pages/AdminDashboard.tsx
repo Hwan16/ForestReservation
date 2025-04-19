@@ -35,10 +35,10 @@ const AdminDashboard = () => {
   const [availabilityCapacity, setAvailabilityCapacity] = useState(20);
   const [availabilityEnabled, setAvailabilityEnabled] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // 쿠키를 통한 인증 확인
-  const [isAdmin, setIsAdmin] = useState(false);
-  
   useEffect(() => {
     // 쿠키에서 adminAuth 값 확인
     const cookies = document.cookie.split(';');
@@ -61,6 +61,7 @@ const AdminDashboard = () => {
       setLocation('/');
     } else {
       setIsAdmin(true);
+      setIsLoading(false);
     }
   }, [setLocation]);
   
@@ -80,13 +81,13 @@ const AdminDashboard = () => {
   // 모든 예약 가져오기
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
     queryKey: ['/api/reservations/all'],
-    enabled: !!user,
+    enabled: isAdmin,
   });
 
   // 월별 가용성 가져오기
   const { data: availabilities, isLoading: availabilitiesLoading } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
-    enabled: !!user,
+    enabled: isAdmin,
   });
 
   // 선택한 날짜의 예약 내역 필터링
@@ -149,8 +150,6 @@ const AdminDashboard = () => {
       });
     },
   });
-
-
 
   // 삭제 확인 핸들러
   const confirmDelete = () => {
@@ -230,17 +229,13 @@ const AdminDashboard = () => {
   const onPrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
   };
-
-  if (authLoading) {
+  
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <p>로딩 중...</p>
       </div>
     );
-  }
-
-  if (authError) {
-    return null; // onError 콜백을 통해 리디렉션
   }
 
   return (
@@ -532,61 +527,66 @@ const AdminDashboard = () => {
               <p><strong>예약번호:</strong> {selectedReservation.id}</p>
               <p><strong>이름:</strong> {selectedReservation.name}</p>
               <p><strong>날짜:</strong> {formatDate(new Date(selectedReservation.date))}</p>
-              <p><strong>시간:</strong> {getTimeSlotText(selectedReservation.timeSlot)}</p>
+              <p><strong>시간:</strong> {selectedReservation.timeSlot === 'morning' ? '오전반' : '오후반'}</p>
+              <p><strong>인원:</strong> {selectedReservation.participants}명</p>
             </div>
           )}
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={isDeleting}>
               취소
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
-              {isDeleting ? "삭제 중..." : "삭제"}
+              {isDeleting ? '삭제 중...' : '삭제'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
       {/* 가용성 설정 다이얼로그 */}
       <Dialog open={showAvailabilityDialog} onOpenChange={setShowAvailabilityDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>예약 가능 설정</DialogTitle>
             <DialogDescription>
-              {selectedDate && `${formatDate(selectedDate)} ${selectedTimeSlot === 'morning' ? '오전반' : '오후반'} 시간대의 예약 가능 설정을 변경합니다.`}
+              {selectedDate && selectedTimeSlot && (
+                <span>
+                  {formatDate(selectedDate)} {selectedTimeSlot === 'morning' ? '오전반' : '오후반'}의 예약 가능 여부를 설정합니다.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4 space-y-4">
+          <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="availability-toggle">예약 가능 여부</Label>
+              <Label htmlFor="availability-switch">예약 가능</Label>
               <Switch 
-                id="availability-toggle" 
+                id="availability-switch" 
                 checked={availabilityEnabled}
                 onCheckedChange={setAvailabilityEnabled}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="capacity-input">최대 예약 인원</Label>
+              <Label htmlFor="capacity-input">최대 인원</Label>
               <Input 
-                id="capacity-input"
-                type="number"
-                min="1"
-                max="100"
+                id="capacity-input" 
+                type="number" 
                 value={availabilityCapacity}
-                onChange={(e) => setAvailabilityCapacity(parseInt(e.target.value) || 1)}
-                disabled={!availabilityEnabled}
+                onChange={(e) => setAvailabilityCapacity(parseInt(e.target.value))}
+                min={1}
+                max={100000}
               />
+              <p className="text-xs text-gray-500">* 99999로 설정하면 인원 제한이 사실상 없습니다.</p>
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAvailabilityDialog(false)}>
+            <Button variant="outline" onClick={() => setShowAvailabilityDialog(false)} disabled={isUpdatingAvailability}>
               취소
             </Button>
             <Button onClick={confirmAvailabilityUpdate} disabled={isUpdatingAvailability}>
-              {isUpdatingAvailability ? "저장 중..." : "저장"}
+              {isUpdatingAvailability ? '저장 중...' : '저장'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -595,7 +595,6 @@ const AdminDashboard = () => {
   );
 };
 
-// 예약 테이블 컴포넌트
 interface ReservationTableProps {
   reservations: Reservation[];
   isLoading: boolean;
@@ -603,60 +602,57 @@ interface ReservationTableProps {
 }
 
 const ReservationTable = ({ reservations, isLoading, onDeleteClick }: ReservationTableProps) => {
-  // 날짜별로 정렬 (최신순)
-  const sortedReservations = [...reservations].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
   if (isLoading) {
     return <p>로딩 중...</p>;
   }
-
-  if (sortedReservations.length === 0) {
-    return <p className="py-4 text-center text-gray-500">예약 내역이 없습니다.</p>;
+  
+  if (reservations.length === 0) {
+    return <p className="text-center py-4 text-gray-500">예약 내역이 없습니다.</p>;
   }
-
+  
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>예약번호</TableHead>
-          <TableHead>날짜</TableHead>
-          <TableHead>시간</TableHead>
-          <TableHead>어린이집/유치원</TableHead>
-          <TableHead>담당자</TableHead>
-          <TableHead>연락처</TableHead>
-          <TableHead>인원</TableHead>
-          <TableHead>예약일</TableHead>
-          <TableHead>관리</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sortedReservations.map((reservation) => (
-          <TableRow key={reservation.id}>
-            <TableCell className="font-medium">{reservation.id}</TableCell>
-            <TableCell>{formatDate(new Date(reservation.date))}</TableCell>
-            <TableCell>
-              {reservation.timeSlot === 'morning' ? '오전반' : '오후반'}
-            </TableCell>
-            <TableCell>{reservation.name}</TableCell>
-            <TableCell>{reservation.instName}</TableCell>
-            <TableCell>{reservation.phone}</TableCell>
-            <TableCell>{reservation.participants}명</TableCell>
-            <TableCell>{new Date(reservation.createdAt).toLocaleDateString()}</TableCell>
-            <TableCell>
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={() => onDeleteClick(reservation)}
-              >
-                삭제
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left py-2 px-4">예약번호</th>
+            <th className="text-left py-2 px-4">날짜</th>
+            <th className="text-left py-2 px-4">시간</th>
+            <th className="text-left py-2 px-4">이름</th>
+            <th className="text-left py-2 px-4">인원</th>
+            <th className="text-left py-2 px-4">연락처</th>
+            <th className="text-left py-2 px-4">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reservations.map((reservation) => (
+            <tr key={reservation.id} className="border-b hover:bg-gray-50">
+              <td className="py-3 px-4">{reservation.id.substring(0, 8)}</td>
+              <td className="py-3 px-4">{formatDate(new Date(reservation.date))}</td>
+              <td className="py-3 px-4">{reservation.timeSlot === 'morning' ? '오전반' : '오후반'}</td>
+              <td className="py-3 px-4">
+                <div>{reservation.name}</div>
+                <div className="text-xs text-gray-500">{reservation.instName}</div>
+              </td>
+              <td className="py-3 px-4">{reservation.participants}명</td>
+              <td className="py-3 px-4">
+                <div>{reservation.phone}</div>
+                {reservation.email && <div className="text-xs text-gray-500">{reservation.email}</div>}
+              </td>
+              <td className="py-3 px-4">
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => onDeleteClick(reservation)}
+                >
+                  삭제
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

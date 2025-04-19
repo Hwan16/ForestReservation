@@ -9,7 +9,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import MyPage from "@/pages/MyPage";
 import Program from "@/pages/Program";
 import { useState, useEffect } from "react";
-import AdminLoginModal from "@/components/AdminLoginModal";
+import PasswordModal from "@/components/PasswordModal";
 
 // 쿠키를 통한 인증 상태 관리를 위한 유틸리티 함수
 const isAuthenticated = () => {
@@ -45,12 +45,12 @@ function AdminRoute() {
   return (
     <>
       {authenticated ? <AdminDashboard /> : null}
-      <AdminLoginModal 
+      <PasswordModal
         isOpen={showLogin} 
         onClose={() => {
           setShowLogin(false);
           setLocation("/");
-        }} 
+        }}
       />
     </>
   );
