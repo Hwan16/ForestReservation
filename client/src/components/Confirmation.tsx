@@ -9,6 +9,7 @@ interface ConfirmationProps {
 }
 
 const Confirmation = ({ reservation }: ConfirmationProps) => {
+  // 시간대에 따라 다른 텍스트와 스타일 적용
   const timeLabel = reservation.timeSlot === "morning" 
     ? "오전반 (09:00 - 13:00)" 
     : <span className="text-blue-600 font-medium">오후반 (14:00 - 18:00)</span>;
@@ -29,7 +30,7 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
         <p className="mb-2"><span className="font-medium">연락처:</span> {reservation.phone}</p>
         <p><span className="font-medium">참여 어린이 인원수:</span> {reservation.participants}명</p>
       </div>
-      <div className="mt-10">
+      <div className="mt-16">
         <Link href="/">
           <Button className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
             홈으로 돌아가기
