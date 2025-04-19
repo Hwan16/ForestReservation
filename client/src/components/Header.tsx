@@ -5,29 +5,42 @@ import PasswordModal from "./PasswordModal";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+// 관리자 인증 여부를 체크하는 함수
+const isAdminAuthenticated = () => {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const trimmedCookie = cookie.trim();
+    if (trimmedCookie.startsWith('adminAuth=true')) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const Header = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(isAdminAuthenticated());
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
 
-  // 페이지 로드 시 및 쿠키 변경 시 관리자 상태 확인
+  // 1초마다 쿠키 상태 확인 (관리자 로그인/로그아웃 상태 변화 감지)
   useEffect(() => {
-    checkAdminStatus();
-  }, []);
-
-  // 관리자 상태 확인 함수
-  const checkAdminStatus = () => {
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      const trimmedCookie = cookie.trim();
-      if (trimmedCookie.startsWith('adminAuth=true')) {
-        setIsAdmin(true);
-        return;
+    const checkAdminStatus = () => {
+      const adminStatus = isAdminAuthenticated();
+      if (adminStatus !== isAdmin) {
+        setIsAdmin(adminStatus);
       }
-    }
-    setIsAdmin(false);
-  };
+    };
+
+    // 초기 확인
+    checkAdminStatus();
+    
+    // 정기적인 쿠키 상태 확인
+    const intervalId = setInterval(checkAdminStatus, 1000);
+    
+    // 컴포넌트 언마운트 시 인터벌 정리
+    return () => clearInterval(intervalId);
+  }, [isAdmin]);
 
   const handleAdminClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();

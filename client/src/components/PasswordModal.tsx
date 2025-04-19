@@ -36,8 +36,12 @@ const PasswordModal = ({ isOpen, onClose }: PasswordModalProps) => {
       date.setTime(date.getTime() + 30 * 60 * 1000); // 30분
       document.cookie = `adminAuth=true; expires=${date.toUTCString()}; path=/;`;
       
-      onClose();
-      navigate("/admin");
+      // 사용자 경험 개선을 위해 약간의 딜레이 후 페이지 이동
+      setTimeout(() => {
+        onClose();
+        // 페이지를 강제로 새로고침하여 상태를 확실히 업데이트
+        window.location.href = "/admin";
+      }, 500);
     } else {
       // 비밀번호가 틀리면 오류 메시지 표시
       setError(true);

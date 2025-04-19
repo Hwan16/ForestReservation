@@ -42,31 +42,43 @@ const AdminDashboard = () => {
   const [selectedDateReservations, setSelectedDateReservations] = useState<Reservation[]>([]);
   const [showDateReservationsDialog, setShowDateReservationsDialog] = useState(false);
 
-  // 쿠키를 통한 인증 확인
-  useEffect(() => {
-    // 쿠키에서 adminAuth 값 확인
+  // 관리자 인증 여부 확인 함수
+  const checkAdminAuthentication = () => {
     const cookies = document.cookie.split(';');
-    let hasAdminAuth = false;
-    
     for (const cookie of cookies) {
       const trimmedCookie = cookie.trim();
       if (trimmedCookie.startsWith('adminAuth=true')) {
-        hasAdminAuth = true;
-        break;
+        return true;
       }
     }
+    return false;
+  };
+
+  // 쿠키를 통한 인증 확인
+  useEffect(() => {
+    const checkAuth = () => {
+      const hasAdminAuth = checkAdminAuthentication();
+      
+      if (!hasAdminAuth) {
+        toast({
+          title: '인증 오류',
+          description: '관리자 로그인이 필요합니다.',
+          variant: 'destructive',
+        });
+        setLocation('/');
+      } else {
+        setIsAdmin(true);
+        setIsLoading(false);
+      }
+    };
     
-    if (!hasAdminAuth) {
-      toast({
-        title: '인증 오류',
-        description: '관리자 로그인이 필요합니다.',
-        variant: 'destructive',
-      });
-      setLocation('/');
-    } else {
-      setIsAdmin(true);
-      setIsLoading(false);
-    }
+    // 초기 인증 확인
+    checkAuth();
+    
+    // 1초마다 인증 상태 확인
+    const intervalId = setInterval(checkAuth, 1000);
+    
+    return () => clearInterval(intervalId);
   }, [setLocation]);
   
   // 로그아웃 처리 함수
@@ -329,107 +341,6 @@ const AdminDashboard = () => {
                 isAdminMode={true}
                 reservations={reservations || []}
               />
-              
-              {/* 요일 */}
-              <div className="grid grid-cols-7 gap-1 mb-2 text-center">
-                {days.map((day, index) => (
-                  <div 
-                    key={index} 
-                    className={`font-medium ${index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : ''}`}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-              
-              {/* 캘린더 그리드 */}
-              <div className="grid grid-cols-7 gap-1">
-                {/* 이전 월 빈 셀 */}
-                {Array.from({ length: startDay }).map((_, index) => (
-                  <div key={`empty-${index}`} className="h-32 p-1"></div>
-                ))}
-                
-                {/* 실제 날짜 */}
-                {daysInMonth.map((day, index) => {
-                  const dateStr = format(day, 'yyyy-MM-dd');
-                  const isSunday = getDay(day) === 0;
-                  const dayReservations = getReservationsForDate(day);
-                  const availability = getAvailabilityForDate(day);
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`h-32 p-1 border rounded ${isSunday ? 'bg-red-50' : 'bg-white'}`}
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`text-sm font-semibold ${isSunday ? 'text-red-500' : ''}`}>
-                          {format(day, dateFormat)}
-                        </span>
-                        <span className="text-xs">
-                          {dayReservations.length > 0 && `${dayReservations.length}건`}
-                        </span>
-                      </div>
-                      
-                      {/* 오전/오후 가용성 및 예약 */}
-                      {!isSunday && (
-                        <div className="mt-1">
-                          <div 
-                            className={`text-xs p-1 mb-1 rounded cursor-pointer ${
-                              availability?.status.morning.available 
-                                ? 'bg-green-50 hover:bg-green-100' 
-                                : 'bg-gray-50 hover:bg-gray-100'
-                            }`}
-                            onClick={() => handleDateSelection(day, 'morning')}
-                          >
-                            <div className="flex justify-between">
-                              <span>오전반</span>
-                              <span>
-                                {availability ? `${availability.status.morning.reserved}/${availability.status.morning.capacity}` : '0/0'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div 
-                            className={`text-xs p-1 rounded cursor-pointer ${
-                              availability?.status.afternoon.available 
-                                ? 'bg-green-50 hover:bg-green-100' 
-                                : 'bg-gray-50 hover:bg-gray-100'
-                            }`}
-                            onClick={() => handleDateSelection(day, 'afternoon')}
-                          >
-                            <div className="flex justify-between">
-                              <span>오후반</span>
-                              <span>
-                                {availability ? `${availability.status.afternoon.reserved}/${availability.status.afternoon.capacity}` : '0/0'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* 예약 목록 (최대 2개) */}
-                      {dayReservations.slice(0, 2).map((res) => (
-                        <div 
-                          key={res.id} 
-                          className="text-xs truncate mt-1 bg-blue-50 p-1 rounded"
-                          title={`${res.name} (${res.participants}명)`}
-                        >
-                          {res.name} ({res.participants}명)
-                        </div>
-                      ))}
-                      {dayReservations.length > 2 && (
-                        <div className="text-xs text-gray-500 mt-1 text-center">
-                          외 {dayReservations.length - 2}건
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              <div className="mt-4 text-sm text-gray-500">
-                * 날짜를 클릭하여 예약 가능 여부와 인원을 설정할 수 있습니다.
-              </div>
             </div>
           </TabsContent>
           
