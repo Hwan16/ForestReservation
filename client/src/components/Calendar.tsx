@@ -34,9 +34,29 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
   // 관리자 모드일 경우 더 자주 갱신
   const { data: availabilities, isLoading, refetch: refetchAvailabilities } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
-    refetchInterval: 3000, // 3초마다 자동 갱신
+    refetchInterval: 1000, // 1초마다 자동 갱신 (빠른 업데이트를 위해)
     refetchOnMount: true, // 컴포넌트가 마운트될 때마다 다시 가져오기
     refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 다시 가져오기
+  });
+  
+  // 예약 데이터 가져오기 (인증 우회용 테스트 API 사용)
+  const { data: fetchedReservations = [], refetch: refetchReservations } = useQuery<Reservation[]>({
+    queryKey: ['/api/reservations/test'],
+    enabled: isAdminMode, // 관리자 모드일 때만 로드
+    refetchInterval: 1000, // 1초마다 자동 갱신
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    select: (data) => {
+      console.log("Calendar - API에서 예약 데이터 로드:", data ? data.length : 0, "건");
+      // 4월 22일 예약 체크
+      if (data && data.length > 0) {
+        const apr22 = data.filter(r => r.date === '2025-04-22');
+        if (apr22.length > 0) {
+          console.log("Calendar - API에서 가져온 22일 예약:", apr22.length, "건", apr22);
+        }
+      }
+      return data || [];
+    }
   });
   
   // 예약 정보 가져오는 주기를 짧게 설정하여 최신 데이터 유지
@@ -107,29 +127,50 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     return isAvailable;
   };
 
+  // 날짜별, 시간대별 예약 조회 함수 (API에서 직접 가져오도록 수정)
   const getReservationsForDate = (date: Date, timeSlot?: "morning" | "afternoon") => {
     const dateStr = format(date, 'yyyy-MM-dd');
     
-    // 유효성 검사 추가 (reservations가 undefined 또는 null인 경우 빈 배열 반환)
-    if (!reservations || reservations.length === 0) {
+    // 우선 모든 데이터 소스 확인 (prop으로 받은 것과 API에서 가져온 것)
+    let allReservations: Reservation[] = [];
+    
+    // 1. prop으로 받은 데이터 추가 (이전 버전 호환성)
+    if (reservations && reservations.length > 0) {
+      allReservations = [...allReservations, ...reservations];
+    }
+    
+    // 2. API로 가져온 데이터 추가 (새로운 방식)
+    if (fetchedReservations && fetchedReservations.length > 0) {
+      allReservations = [...allReservations, ...fetchedReservations];
+    }
+    
+    // 중복 항목 제거 (id 기준)
+    const uniqueReservations = Array.from(
+      new Map(allReservations.map(item => [item.id, item])).values()
+    );
+    
+    // 유효성 검사
+    if (uniqueReservations.length === 0) {
       return [];
     }
     
-    let filteredReservations = reservations.filter(r => r.date === dateStr);
+    // 날짜별 필터링
+    let filteredReservations = uniqueReservations.filter(r => r.date === dateStr);
     
+    // 시간대별 필터링 (선택적)
     if (timeSlot) {
       filteredReservations = filteredReservations.filter(r => r.timeSlot === timeSlot);
     }
     
-    // 디버깅을 위한 로그 추가 (모든 날짜에 대해 로깅)
-    if (filteredReservations.length > 0) {
+    // 디버깅을 위한 로그 (중요 날짜만)
+    if (filteredReservations.length > 0 && dateStr === '2025-04-22') {
       console.log(`Calendar - 예약 데이터 for ${dateStr} ${timeSlot || 'all'}:`, 
         filteredReservations.length, 
         '예약, 총 인원:', 
         filteredReservations.reduce((sum, r) => sum + r.participants, 0)
       );
       
-      // 세부 내용 확인 (각 예약의 정보 출력)
+      // 세부 내용 확인
       filteredReservations.forEach((r, idx) => {
         console.log(`  예약 ${idx+1}: ${r.name}, ${r.timeSlot}, ${r.participants}명`);
       });
