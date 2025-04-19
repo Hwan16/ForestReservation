@@ -36,30 +36,46 @@ const AdminDashboard = () => {
   const [availabilityEnabled, setAvailabilityEnabled] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // 사용자 인증 확인
-  const { data: user, isLoading: authLoading, isError: authError } = useQuery({
-    queryKey: ['/api/auth/me'],
-    gcTime: 0,
-    retry: false,
-    onSuccess: (data) => {
-      if (!data || !data.isAdmin) {
-        toast({
-          title: '인증 오류',
-          description: '관리자 권한이 필요합니다.',
-          variant: 'destructive',
-        });
-        setLocation('/');
+  // 쿠키를 통한 인증 확인
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    // 쿠키에서 adminAuth 값 확인
+    const cookies = document.cookie.split(';');
+    let hasAdminAuth = false;
+    
+    for (const cookie of cookies) {
+      const trimmedCookie = cookie.trim();
+      if (trimmedCookie.startsWith('adminAuth=true')) {
+        hasAdminAuth = true;
+        break;
       }
-    },
-    onError: () => {
+    }
+    
+    if (!hasAdminAuth) {
       toast({
         title: '인증 오류',
         description: '관리자 로그인이 필요합니다.',
         variant: 'destructive',
       });
       setLocation('/');
+    } else {
+      setIsAdmin(true);
     }
-  });
+  }, [setLocation]);
+  
+  // 로그아웃 처리 함수
+  const handleLogout = () => {
+    // 쿠키 삭제
+    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    
+    toast({
+      title: '로그아웃',
+      description: '관리자 로그아웃 되었습니다.',
+    });
+    
+    setLocation('/');
+  };
 
   // 모든 예약 가져오기
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
@@ -134,18 +150,7 @@ const AdminDashboard = () => {
     },
   });
 
-  // 로그아웃 함수
-  const handleLogout = () => {
-    // 쿠키 삭제로 로그아웃 처리
-    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
-    toast({
-      title: '로그아웃 성공',
-      description: '안전하게 로그아웃되었습니다.',
-    });
-    
-    setLocation('/');
-  };
+
 
   // 삭제 확인 핸들러
   const confirmDelete = () => {
