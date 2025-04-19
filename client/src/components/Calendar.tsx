@@ -41,17 +41,29 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
   
   // 예약 정보 가져오는 주기를 짧게 설정하여 최신 데이터 유지
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      // 3초마다 예약 정보 다시 가져오기
-      if (isAdminMode) {
+    if (isAdminMode) {
+      const intervalId = setInterval(() => {
         // 콘솔에 현재 예약 정보 로깅
         console.log("Calendar - 예약 데이터 강제 갱신 중...", new Date().toLocaleTimeString());
+        console.log("Calendar - 현재 예약 데이터:", reservations);
+        
+        // 2025-04-22 예약 데이터 체크
+        const apr22Reservations = reservations.filter(r => r.date === '2025-04-22');
+        if (apr22Reservations.length > 0) {
+          console.log("Calendar - 22일 예약:", apr22Reservations.length, "건", apr22Reservations);
+          
+          const morning = apr22Reservations.filter(r => r.timeSlot === 'morning');
+          const afternoon = apr22Reservations.filter(r => r.timeSlot === 'afternoon');
+          
+          console.log("Calendar - 22일 오전:", morning.length, "건, 오후:", afternoon.length, "건");
+        }
+        
         refetchAvailabilities();
-      }
-    }, 3000);
-    
-    return () => clearInterval(intervalId);
-  }, [isAdminMode, refetchAvailabilities]);
+      }, 1000); // 1초로 단축
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [isAdminMode, refetchAvailabilities, reservations]);
 
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   

@@ -92,16 +92,18 @@ const AdminDashboard = () => {
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
     queryKey: ['/api/reservations/all'],
     enabled: isAdmin,
-    refetchInterval: 3000, // 3초마다 자동 갱신하여 실시간 데이터 반영
+    refetchInterval: 1000, // 1초마다 자동 갱신하여 실시간 데이터 반영
     refetchOnWindowFocus: true,
     // 응답 받은 후 추가 작업 (디버깅용)
     select: (data) => {
       if (data && data.length > 0) {
-        console.log(`AdminDashboard - 예약 데이터 ${data.length}건 로드됨`);
+        console.log(`AdminDashboard - 예약 데이터 ${data.length}건 로드됨:`, data);
         const test22Data = data.filter(r => r.date === '2025-04-22');
         if (test22Data.length > 0) {
           console.log(`22일 예약: ${test22Data.length}건`, test22Data);
         }
+      } else {
+        console.log('AdminDashboard - 예약 데이터 없음');
       }
       return data;
     }
