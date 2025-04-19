@@ -91,12 +91,16 @@ const AdminDashboard = () => {
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
     queryKey: ['/api/reservations/all'],
     enabled: isAdmin,
+    refetchInterval: 5000, // 5초마다 자동 갱신하여 실시간 데이터 반영
+    refetchOnWindowFocus: true,
   });
 
   // 월별 가용성 가져오기
   const { data: availabilities, isLoading: availabilitiesLoading } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
     enabled: isAdmin,
+    refetchInterval: 5000, // 5초마다 자동 갱신
+    refetchOnWindowFocus: true,
   });
 
   // 선택한 날짜의 예약 내역 필터링
@@ -141,9 +145,33 @@ const AdminDashboard = () => {
         title: '삭제 완료',
         description: '예약이 성공적으로 삭제되었습니다.',
       });
+      // 모든 관련 쿼리를 무효화하여 UI가 최신 데이터로 업데이트되도록 함
       queryClient.invalidateQueries({ queryKey: ['/api/reservations/all'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`] });
+      
+      // 화면 닫기
       setShowDeleteDialog(false);
       setSelectedReservation(null);
+      
+      // 날짜별 예약 목록 창이 열려 있었다면 최신 데이터로 업데이트
+      if (showDateReservationsDialog && selectedDate) {
+        setTimeout(() => {
+          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+          const updatedReservations = queryClient.getQueryData<Reservation[]>(['/api/reservations/all']) || [];
+          const dateReservations = updatedReservations.filter(r => r.date === dateStr);
+          
+          setSelectedDateReservations(dateReservations);
+          
+          // 해당 날짜에 더이상 예약이 없으면 창을 닫음
+          if (dateReservations.length === 0) {
+            setShowDateReservationsDialog(false);
+            toast({
+              title: '알림',
+              description: '선택한 날짜에 남은 예약이 없습니다.',
+            });
+          }
+        }, 300);
+      }
     },
     onError: (error) => {
       toast({
@@ -164,10 +192,17 @@ const AdminDashboard = () => {
         title: '변경 완료',
         description: '예약 가능 설정이 업데이트되었습니다.',
       });
+      
+      // 모든 관련 쿼리 캐시 갱신
       queryClient.invalidateQueries({ queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reservations/all'] });
+      
+      // UI 상태 초기화
       setShowAvailabilityDialog(false);
       setSelectedDate(null);
       setSelectedTimeSlot(null);
+      
+      console.log("가용성 설정 업데이트 완료, 캐시 갱신됨");
     },
     onError: (error) => {
       toast({
