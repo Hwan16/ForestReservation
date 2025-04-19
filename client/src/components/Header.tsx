@@ -1,13 +1,27 @@
 import { Link } from "wouter";
 import forestLogo from "../assets/forest-logo.png";
+import { useAuth } from "../App";
 
 const Header = () => {
+  const { setShowAdminLogin } = useAuth();
+
+  const handleAdminClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setShowAdminLogin(true);
+  };
+
   return (
     <>
       <div className="flex justify-end bg-white p-2 border-b">
         <div className="container mx-auto px-4 flex justify-end space-x-4">
           <Link href="/mypage" className="text-neutral-dark hover:text-primary text-sm">마이페이지</Link>
-          <Link href="/admin" className="text-neutral-dark hover:text-primary text-sm">관리자</Link>
+          <a 
+            href="#" 
+            onClick={handleAdminClick}
+            className="text-neutral-dark hover:text-primary text-sm cursor-pointer"
+          >
+            관리자
+          </a>
         </div>
       </div>
       <header className="bg-white shadow-md">

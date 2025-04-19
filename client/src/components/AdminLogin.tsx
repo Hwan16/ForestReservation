@@ -1,108 +1,85 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
-import { loginSchema } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from "@/hooks/use-toast";
-import { X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminLoginProps {
   onClose: () => void;
+  onSuccess: () => void;
+  isOpen: boolean;
 }
 
-const AdminLogin = ({ onClose }: AdminLoginProps) => {
-  const [, setLocation] = useLocation();
-  
-  const form = useForm({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
-  });
+const AdminLogin = ({ onClose, onSuccess, isOpen }: AdminLoginProps) => {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+  const { toast } = useToast();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (data: { username: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return await response.json();
-    },
-    onSuccess: () => {
+  const handleLogin = () => {
+    // 비밀번호 확인 (비밀번호: "1005")
+    if (password === "1005") {
+      setError(false);
       toast({
         title: "로그인 성공",
         description: "관리자 페이지로 이동합니다.",
       });
-      setLocation("/admin");
-      onClose();
-    },
-    onError: (error) => {
+      onSuccess();
+    } else {
+      setError(true);
       toast({
         title: "로그인 실패",
-        description: `로그인 중 오류가 발생했습니다: ${error.message}`,
+        description: "비밀번호가 일치하지 않습니다.",
         variant: "destructive",
       });
-    },
-  });
-
-  const onSubmit = (data: { username: string; password: string }) => {
-    mutate(data);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">관리자 로그인</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="h-5 w-5" />
-          </Button>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>관리자 로그인</DialogTitle>
+          <DialogDescription>
+            관리자 페이지에 접근하기 위해 비밀번호를 입력해주세요.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="password" className="text-right">
+              비밀번호
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="관리자 비밀번호 입력"
+              className={`col-span-3 ${error ? 'border-red-500' : ''}`}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleLogin();
+                }
+              }}
+            />
+          </div>
+          {error && (
+            <div className="text-red-500 text-sm ml-auto col-span-3">
+              비밀번호가 일치하지 않습니다.
+            </div>
+          )}
         </div>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>아이디</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>비밀번호</FormLabel>
-                  <FormControl>
-                    <Input type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <Button 
-              type="submit" 
-              disabled={isPending}
-              className="w-full mt-4"
-            >
-              {isPending ? "로그인 중..." : "로그인"}
-            </Button>
-          </form>
-        </Form>
-      </div>
-    </div>
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button onClick={handleLogin}>로그인</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
