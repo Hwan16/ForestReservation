@@ -31,10 +31,13 @@ const PasswordModal = ({ isOpen, onClose }: PasswordModalProps) => {
         description: "관리자 페이지로 이동합니다.",
       });
       
-      // 쿠키를 설정하여 30분 동안 인증 유지
+      // 쿠키를 설정하여 1시간 동안 인증 유지
       const date = new Date();
-      date.setTime(date.getTime() + 30 * 60 * 1000); // 30분
-      document.cookie = `adminAuth=true; expires=${date.toUTCString()}; path=/;`;
+      date.setTime(date.getTime() + 60 * 60 * 1000); // 1시간
+      // 보안을 위해 쿠키 설정을 명확하게 작성
+      document.cookie = `adminAuth=true; expires=${date.toUTCString()}; path=/; SameSite=Strict`;
+      
+      console.log("관리자 로그인 성공! 쿠키 설정:", document.cookie);
       
       // 사용자 경험 개선을 위해 약간의 딜레이 후 페이지 이동
       setTimeout(() => {

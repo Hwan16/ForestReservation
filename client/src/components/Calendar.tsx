@@ -193,8 +193,8 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
                   <span className="text-xs text-red-500 mt-1">예약불가</span>
                 ) : isAdminMode ? (
                   <div className="flex flex-col text-xs mt-1 text-gray-700">
-                    <span>오전: {morningStats.teams}팀 / {morningStats.participants}명</span>
-                    <span>오후: {afternoonStats.teams}팀 / {afternoonStats.participants}명</span>
+                    <span className="whitespace-nowrap">오전: {morningStats.teams}팀/{morningStats.participants}명</span>
+                    <span className="whitespace-nowrap">오후: {afternoonStats.teams}팀/{afternoonStats.participants}명</span>
                   </div>
                 ) : (
                   <span 
@@ -209,22 +209,36 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
         })}
       </div>
       
-      {!isAdminMode && (
-        <div className="mt-6 flex flex-wrap justify-center gap-4">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-50 border border-green-200 rounded-md mr-2"></div>
-            <span className="text-sm">예약가능</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded-md mr-2"></div>
-            <span className="text-sm">예약마감</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
-            <span className="text-sm">예약불가</span>
-          </div>
-        </div>
-      )}
+      {/* 범례 표시 (관리자 모드와 일반 모드에 따라 다르게 표시) */}
+      <div className="mt-6 flex flex-wrap justify-center gap-4">
+        {isAdminMode ? (
+          <>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-blue-50 border border-blue-200 rounded-md mr-2"></div>
+              <span className="text-sm">조회/수정 가능</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
+              <span className="text-sm">예약불가 (일요일)</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-green-50 border border-green-200 rounded-md mr-2"></div>
+              <span className="text-sm">예약가능</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded-md mr-2"></div>
+              <span className="text-sm">예약마감</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
+              <span className="text-sm">예약불가</span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

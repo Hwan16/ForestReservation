@@ -4,10 +4,10 @@
  */
 export const isAuthenticated = (): boolean => {
   const cookies = document.cookie.split(';');
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i].trim();
-    if (cookie.startsWith('adminAuth=')) {
-      return cookie.substring('adminAuth='.length) === 'true';
+  for (const cookie of cookies) {
+    const trimmedCookie = cookie.trim();
+    if (trimmedCookie === 'adminAuth=true') {
+      return true;
     }
   }
   return false;

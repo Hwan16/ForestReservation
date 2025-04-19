@@ -13,15 +13,41 @@ import PasswordModal from "@/components/PasswordModal";
 
 // 쿠키를 통한 인증 상태 관리를 위한 유틸리티 함수
 const isAuthenticated = () => {
-  return document.cookie.includes('adminAuth=true');
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const trimmedCookie = cookie.trim();
+    if (trimmedCookie.startsWith('adminAuth=true')) {
+      return true;
+    }
+  }
+  return false;
 };
 
 // 관리자 인증이 필요한 라우트를 위한 컴포넌트
 function AdminRoute() {
-  const [authenticated, setAuthState] = useState(isAuthenticated());
+  const [authenticated, setAuthenticated] = useState(isAuthenticated());
   const [showLogin, setShowLogin] = useState(false);
   const [_, setLocation] = useLocation();
 
+  // 인증 상태 주기적으로 확인
+  useEffect(() => {
+    const checkAuth = () => {
+      const isAuth = isAuthenticated();
+      if (isAuth !== authenticated) {
+        setAuthenticated(isAuth);
+      }
+    };
+    
+    // 초기 확인
+    checkAuth();
+    
+    // 1초마다 인증 상태 확인
+    const intervalId = setInterval(checkAuth, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [authenticated]);
+
+  // 인증되지 않았을 때 로그인 모달 표시 및 홈으로 이동
   useEffect(() => {
     if (!authenticated) {
       setShowLogin(true);
