@@ -21,7 +21,7 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
   
   const { data: availabilities, isLoading } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
-    refetchInterval: isAdminMode ? 3000 : false, // 관리자 모드에서는 3초마다 자동 갱신
+    refetchInterval: 5000, // 모든 모드에서 5초마다 자동 갱신
   });
 
   const days = ["일", "월", "화", "수", "목", "금", "토"];
