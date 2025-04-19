@@ -26,7 +26,7 @@ export const isAuthenticated = (): boolean => {
 
 /**
  * 관리자 로그아웃 함수
- * adminAuth 쿠키와 로컬 스토리지 항목을 삭제합니다.
+ * adminAuth 쿠키와 로컬 스토리지 항목을 삭제하고 홈 화면으로 이동합니다.
  */
 export const logout = (): void => {
   // 쿠키 삭제
@@ -36,4 +36,7 @@ export const logout = (): void => {
   localStorage.removeItem('adminAuth');
   
   console.log("로그아웃됨");
+  
+  // 홈 화면으로 이동
+  window.location.href = '/';
 };

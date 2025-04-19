@@ -368,30 +368,45 @@ const AdminDashboard = () => {
                 onSelectDate={(date) => {
                   setSelectedDate(date);
                   
-                  // 캐시를 무효화하여 최신 데이터 불러오기
-                  queryClient.invalidateQueries({ queryKey: ['/api/reservations/all'] });
-                  
-                  setTimeout(() => {
-                    // 예약 리스트 다이얼로그 표시
-                    const dateStr = format(date, 'yyyy-MM-dd');
-                    
-                    // 최신 데이터로 다시 필터링
-                    const updatedReservations = queryClient.getQueryData<Reservation[]>(['/api/reservations/all']) || [];
-                    const dateReservations = updatedReservations.filter(r => r.date === dateStr);
-                    
-                    console.log("날짜 선택:", dateStr, "필터링된 예약:", dateReservations.length, "총 예약:", updatedReservations.length);
-                    
-                    if (dateReservations.length > 0) {
+                  // 서버에서 직접 데이터를 새로 가져오기
+                  const fetchLatestData = async () => {
+                    try {
+                      const response = await fetch('/api/reservations/all');
+                      if (!response.ok) {
+                        throw new Error('Failed to fetch reservations');
+                      }
+                      
+                      const data = await response.json();
+                      
+                      // 최신 데이터로 캐시 업데이트
+                      queryClient.setQueryData(['/api/reservations/all'], data);
+                      
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      const dateReservations = data.filter((r: Reservation) => r.date === dateStr);
+                      
+                      console.log("날짜 선택:", dateStr, "필터링된 예약:", dateReservations.length, "총 예약:", data.length);
+                      
                       // 선택한 날짜의 모든 예약 정보를 저장하고 다이얼로그 표시
                       setSelectedDateReservations(dateReservations);
                       setShowDateReservationsDialog(true);
-                    } else {
+                      
+                      if (dateReservations.length === 0) {
+                        toast({
+                          title: '알림',
+                          description: '선택한 날짜에 예약이 없습니다. 빈 예약 목록이 표시됩니다.',
+                        });
+                      }
+                    } catch (error) {
+                      console.error('예약 데이터 가져오기 오류:', error);
                       toast({
-                        title: '알림',
-                        description: '선택한 날짜에 예약이 없습니다.',
+                        title: '오류',
+                        description: '예약 정보를 불러오는 데 실패했습니다.',
+                        variant: 'destructive',
                       });
                     }
-                  }, 300); // 쿼리가 완료될 시간을 줌
+                  };
+                  
+                  fetchLatestData();
                 }}
                 selectedDate={selectedDate}
                 isAdminMode={true}

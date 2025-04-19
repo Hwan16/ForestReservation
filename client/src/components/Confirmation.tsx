@@ -31,11 +31,12 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
         <p><span className="font-medium">참여 어린이 인원수:</span> {reservation.participants}명</p>
       </div>
       <div className="mt-16">
-        <Link href="/">
-          <Button className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
-            홈으로 돌아가기
-          </Button>
-        </Link>
+        <Button 
+          onClick={() => window.location.href = '/'} 
+          className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
+        >
+          홈으로 돌아가기
+        </Button>
       </div>
     </div>
   );
