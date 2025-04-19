@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import forestLogo from "../assets/forest-logo.png";
-import { useAuth } from "../App";
+import { useState } from "react";
+import AdminLoginModal from "./AdminLoginModal";
 
 const Header = () => {
-  const { setShowAdminLogin } = useAuth();
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   const handleAdminClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -46,6 +47,12 @@ const Header = () => {
           </div>
         </div>
       </header>
+      
+      {/* 관리자 로그인 모달 */}
+      <AdminLoginModal 
+        isOpen={showAdminLogin} 
+        onClose={() => setShowAdminLogin(false)} 
+      />
     </>
   );
 };

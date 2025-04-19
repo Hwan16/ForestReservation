@@ -8,48 +8,59 @@ import Home from "@/pages/Home";
 import AdminDashboard from "@/pages/AdminDashboard";
 import MyPage from "@/pages/MyPage";
 import Program from "@/pages/Program";
-import { createContext, useContext, useState, useEffect } from "react";
-import AdminLogin from "@/components/AdminLogin";
+import { useState, useEffect } from "react";
+import AdminLoginModal from "@/components/AdminLoginModal";
 
-// 관리자 인증 컨텍스트 생성
-interface AuthContextType {
-  isAdmin: boolean;
-  setIsAdmin: (value: boolean) => void;
-  showAdminLogin: boolean;
-  setShowAdminLogin: (value: boolean) => void;
-}
+// 쿠키를 통한 인증 상태 관리를 위한 유틸리티 함수
+const isAuthenticated = () => {
+  return document.cookie.includes('adminAuth=true');
+};
 
-const AuthContext = createContext<AuthContextType>({
-  isAdmin: false,
-  setIsAdmin: () => {},
-  showAdminLogin: false,
-  setShowAdminLogin: () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
+// 인증 상태를 설정하는 함수
+export const setAuthenticated = (value: boolean) => {
+  if (value) {
+    // 30분 후 만료되는 쿠키 설정
+    const expiryDate = new Date();
+    expiryDate.setTime(expiryDate.getTime() + 30 * 60 * 1000); // 30분
+    document.cookie = `adminAuth=true; expires=${expiryDate.toUTCString()}; path=/`;
+  } else {
+    // 쿠키 삭제
+    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  }
+};
 
 // 관리자 인증이 필요한 라우트를 위한 컴포넌트
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isAdmin, setShowAdminLogin } = useAuth();
+function AdminRoute() {
+  const [authenticated, setAuthState] = useState(isAuthenticated());
+  const [showLogin, setShowLogin] = useState(false);
   const [_, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isAdmin) {
-      setShowAdminLogin(true);
+    if (!authenticated) {
+      setShowLogin(true);
       setLocation("/");
     }
-  }, [isAdmin, setShowAdminLogin, setLocation]);
+  }, [authenticated, setLocation]);
 
-  return isAdmin ? <Component /> : null;
+  return (
+    <>
+      {authenticated ? <AdminDashboard /> : null}
+      <AdminLoginModal 
+        isOpen={showLogin} 
+        onClose={() => {
+          setShowLogin(false);
+          setLocation("/");
+        }} 
+      />
+    </>
+  );
 }
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/admin">
-        <ProtectedRoute component={AdminDashboard} />
-      </Route>
+      <Route path="/admin" component={AdminRoute} />
       <Route path="/mypage" component={MyPage} />
       <Route path="/program" component={Program} />
       <Route component={NotFound} />
@@ -58,33 +69,12 @@ function Router() {
 }
 
 function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [_, setLocation] = useLocation();
-  
-  const handleAdminLoginSuccess = () => {
-    setIsAdmin(true);
-    setShowAdminLogin(false);
-    setLocation("/admin");
-  };
-
-  const handleCloseAdminLogin = () => {
-    setShowAdminLogin(false);
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={{ isAdmin, setIsAdmin, showAdminLogin, setShowAdminLogin }}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-          <AdminLogin 
-            isOpen={showAdminLogin} 
-            onClose={handleCloseAdminLogin} 
-            onSuccess={handleAdminLoginSuccess} 
-          />
-        </TooltipProvider>
-      </AuthContext.Provider>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

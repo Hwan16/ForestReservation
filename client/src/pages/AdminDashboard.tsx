@@ -134,19 +134,18 @@ const AdminDashboard = () => {
     },
   });
 
-  // 로그아웃 뮤테이션
-  const { mutate: logout } = useMutation({
-    mutationFn: async () => {
-      await apiRequest('POST', '/api/auth/logout');
-    },
-    onSuccess: () => {
-      toast({
-        title: '로그아웃 성공',
-        description: '안전하게 로그아웃되었습니다.',
-      });
-      setLocation('/');
-    },
-  });
+  // 로그아웃 함수
+  const handleLogout = () => {
+    // 쿠키 삭제로 로그아웃 처리
+    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    
+    toast({
+      title: '로그아웃 성공',
+      description: '안전하게 로그아웃되었습니다.',
+    });
+    
+    setLocation('/');
+  };
 
   // 삭제 확인 핸들러
   const confirmDelete = () => {
@@ -248,7 +247,7 @@ const AdminDashboard = () => {
             <Button variant="outline" onClick={() => setLocation('/')}>
               메인으로
             </Button>
-            <Button variant="outline" onClick={() => logout()}>
+            <Button variant="outline" onClick={handleLogout}>
               로그아웃
             </Button>
           </div>
