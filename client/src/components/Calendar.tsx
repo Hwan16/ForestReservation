@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { formatMonth } from "@/lib/utils";
-import { DayAvailability } from "../types";
+import { DayAvailability, Reservation } from "../types";
 import { Button } from "@/components/ui/button";
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
   selectedDate: Date | null;
+  isAdminMode?: boolean;
+  reservations?: Reservation[];
 }
 
-const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
+const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservations = [] }: CalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
   const { data: availabilities, isLoading } = useQuery<DayAvailability[]>({
@@ -55,22 +57,37 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
     return isAvailable;
   };
 
-  const getTotalReservations = (day: Date) => {
-    const dateStr = format(day, 'yyyy-MM-dd');
+  const getReservationsForDate = (date: Date, timeSlot?: "morning" | "afternoon") => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    let filteredReservations = reservations.filter(r => r.date === dateStr);
     
-    if (!availabilities) return 0;
+    if (timeSlot) {
+      filteredReservations = filteredReservations.filter(r => r.timeSlot === timeSlot);
+    }
     
-    const availability = availabilities.find(a => a.date === dateStr);
-    if (!availability) return 0;
+    return filteredReservations;
+  };
+  
+  const getReservationStats = (date: Date, timeSlot: "morning" | "afternoon") => {
+    const reservationsForSlot = getReservationsForDate(date, timeSlot);
+    const totalTeams = reservationsForSlot.length;
+    const totalParticipants = reservationsForSlot.reduce((sum, res) => sum + res.participants, 0);
     
-    return availability.status.morning.reserved + availability.status.afternoon.reserved;
+    return {
+      teams: totalTeams,
+      participants: totalParticipants
+    };
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
       <div className="flex flex-col items-center mb-6">
-        <h2 className="text-2xl font-bold text-center mb-4">체험 예약하기</h2>
-        <h3 className="text-gray-500 text-center mb-6">Reservation</h3>
+        <h2 className="text-2xl font-bold text-center mb-4">
+          {isAdminMode ? "예약 현황 관리" : "체험 예약하기"}
+        </h2>
+        <h3 className="text-gray-500 text-center mb-6">
+          {isAdminMode ? "Reservation Management" : "Reservation"}
+        </h3>
         
         <div className="flex justify-between items-center w-full">
           <Button 
@@ -145,7 +162,9 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
           const available = isDateAvailable(day);
           const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
           const isSunday = getDay(day) === 0;
-          const totalReservations = getTotalReservations(day);
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const morningStats = getReservationStats(day, "morning");
+          const afternoonStats = getReservationStats(day, "afternoon");
           
           return (
             <div key={index} className="calendar-day p-1 text-center">
@@ -157,12 +176,12 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
                   ${isSunday ? 'bg-red-50 border border-red-200 text-red-500' : ''}
                   transition-colors`}
                 onClick={() => {
-                  if (available) {
-                    console.log("Calendar - Selected date:", format(day, 'yyyy-MM-dd'), "day:", getDay(day));
+                  if (isAdminMode || available) {
+                    console.log("Calendar - Selected date:", dateStr, "day:", getDay(day));
                     onSelectDate(day);
                   }
                 }}
-                disabled={!available || isSunday}
+                disabled={!isAdminMode && (!available || isSunday)}
               >
                 <span className={`text-sm md:text-base font-medium ${isSunday ? 'text-red-500' : ''}`}>
                   {format(day, dateFormat)}
@@ -170,6 +189,11 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
                 
                 {isSunday ? (
                   <span className="text-xs text-red-500 mt-1">예약불가</span>
+                ) : isAdminMode ? (
+                  <div className="flex flex-col text-xs mt-1 text-gray-700">
+                    <span>오전: {morningStats.teams}팀 / {morningStats.participants}명</span>
+                    <span>오후: {afternoonStats.teams}팀 / {afternoonStats.participants}명</span>
+                  </div>
                 ) : (
                   <span 
                     className={`text-xs mt-1 ${isSelected ? 'text-white' : available ? 'text-green-600' : 'text-gray-400'}`}
@@ -183,20 +207,22 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
         })}
       </div>
       
-      <div className="mt-6 flex flex-wrap justify-center gap-4">
-        <div className="flex items-center">
-          <div className="w-4 h-4 bg-green-50 border border-green-200 rounded-md mr-2"></div>
-          <span className="text-sm">예약가능</span>
+      {!isAdminMode && (
+        <div className="mt-6 flex flex-wrap justify-center gap-4">
+          <div className="flex items-center">
+            <div className="w-4 h-4 bg-green-50 border border-green-200 rounded-md mr-2"></div>
+            <span className="text-sm">예약가능</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded-md mr-2"></div>
+            <span className="text-sm">예약마감</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
+            <span className="text-sm">예약불가</span>
+          </div>
         </div>
-        <div className="flex items-center">
-          <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded-md mr-2"></div>
-          <span className="text-sm">예약마감</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-4 h-4 bg-red-50 border border-red-200 rounded-md mr-2"></div>
-          <span className="text-sm">예약불가</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

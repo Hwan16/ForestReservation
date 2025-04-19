@@ -37,6 +37,9 @@ const AdminDashboard = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // 날짜별 예약 목록을 위한 상태 변수
+  const [selectedDateReservations, setSelectedDateReservations] = useState<Reservation[]>([]);
+  const [showDateReservationsDialog, setShowDateReservationsDialog] = useState(false);
 
   // 쿠키를 통한 인증 확인
   useEffect(() => {
