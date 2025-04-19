@@ -16,19 +16,6 @@ const isAuthenticated = () => {
   return document.cookie.includes('adminAuth=true');
 };
 
-// 인증 상태를 설정하는 함수
-export const setAuthenticated = (value: boolean) => {
-  if (value) {
-    // 30분 후 만료되는 쿠키 설정
-    const expiryDate = new Date();
-    expiryDate.setTime(expiryDate.getTime() + 30 * 60 * 1000); // 30분
-    document.cookie = `adminAuth=true; expires=${expiryDate.toUTCString()}; path=/`;
-  } else {
-    // 쿠키 삭제
-    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  }
-};
-
 // 관리자 인증이 필요한 라우트를 위한 컴포넌트
 function AdminRoute() {
   const [authenticated, setAuthState] = useState(isAuthenticated());
