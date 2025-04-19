@@ -437,6 +437,18 @@ const AdminDashboard = () => {
           <TabsContent value="calendar">
             <div className="bg-white rounded-lg shadow p-6">
               {/* 관리자용 캘린더 컴포넌트 */}
+              {reservations && reservations.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">
+                    현재 총 {reservations.length}건의 예약 데이터가 로드되었습니다.
+                    {/* 디버깅용 */}
+                    {reservations.some(r => r.date === '2025-04-22') && 
+                      ` (22일 예약: ${reservations.filter(r => r.date === '2025-04-22').length}건)`
+                    }
+                  </p>
+                </div>
+              )}
+              
               <Calendar 
                 onSelectDate={handleCalendarDateSelect}
                 selectedDate={selectedDate}
