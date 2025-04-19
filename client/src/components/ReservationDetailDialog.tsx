@@ -59,10 +59,12 @@ const ReservationDetailDialog = ({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[80px]">번호</TableHead>
-            <TableHead>기관명</TableHead>
-            <TableHead>담당자</TableHead>
-            <TableHead>전화번호</TableHead>
-            <TableHead>인원</TableHead>
+            <TableHead>신청 날짜</TableHead>
+            <TableHead>어린이집/유치원 이름</TableHead>
+            <TableHead>원장님/선생님 성함</TableHead>
+            <TableHead>연락처</TableHead>
+            <TableHead>인원수</TableHead>
+            <TableHead>특이사항</TableHead>
             <TableHead>관리</TableHead>
           </TableRow>
         </TableHeader>
@@ -70,10 +72,12 @@ const ReservationDetailDialog = ({
           {reservations.map((reservation, index) => (
             <TableRow key={reservation.id}>
               <TableCell className="font-medium">{index + 1}</TableCell>
+              <TableCell>{formatDate(new Date(reservation.date))}</TableCell>
               <TableCell>{reservation.name}</TableCell>
               <TableCell>{reservation.instName}</TableCell>
               <TableCell>{reservation.phone}</TableCell>
               <TableCell>{reservation.participants}명</TableCell>
+              <TableCell>{reservation.notes || '-'}</TableCell>
               <TableCell>
                 <Button 
                   variant="destructive" 

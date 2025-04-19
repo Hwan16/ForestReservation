@@ -19,10 +19,29 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
   // 관리자 모드 상태 로깅
   console.log("Calendar - isAdminMode:", isAdminMode, "rendered at:", new Date().toISOString());
   
-  const { data: availabilities, isLoading } = useQuery<DayAvailability[]>({
+  // 관리자 모드일 경우 더 자주 갱신
+  const { data: availabilities, isLoading, refetch: refetchAvailabilities } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
-    refetchInterval: 5000, // 모든 모드에서 5초마다 자동 갱신
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 0, // 항상 새로운 데이터를 가져오도록 설정
+    cacheTime: 0, // 캐시를 사용하지 않음
+    refetchOnMount: true, // 컴포넌트가 마운트될 때마다 다시 가져오기
+    refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 다시 가져오기
   });
+  
+  // 예약 정보 가져오는 주기를 짧게 설정하여 최신 데이터 유지
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // 3초마다 예약 정보 다시 가져오기
+      if (isAdminMode) {
+        // 콘솔에 현재 예약 정보 로깅
+        console.log("Calendar - 예약 데이터 강제 갱신 중...", new Date().toLocaleTimeString());
+        refetchAvailabilities();
+      }
+    }, 3000);
+    
+    return () => clearInterval(intervalId);
+  }, [isAdminMode, refetchAvailabilities]);
 
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   
@@ -70,6 +89,15 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
       filteredReservations = filteredReservations.filter(r => r.timeSlot === timeSlot);
     }
     
+    // 디버깅을 위한 로그 추가
+    if (dateStr === '2025-04-22') {
+      console.log(`Calendar - 예약 데이터 for ${dateStr} ${timeSlot || 'all'}:`, 
+        filteredReservations.length, 
+        '예약, 총 인원:', 
+        filteredReservations.reduce((sum, r) => sum + r.participants, 0)
+      );
+    }
+    
     return filteredReservations;
   };
   
@@ -77,6 +105,12 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     const reservationsForSlot = getReservationsForDate(date, timeSlot);
     const totalTeams = reservationsForSlot.length;
     const totalParticipants = reservationsForSlot.reduce((sum, res) => sum + res.participants, 0);
+    
+    // 상세 로깅 (디버깅용)
+    const dateStr = format(date, 'yyyy-MM-dd');
+    if (dateStr === '2025-04-22') {
+      console.log(`Calendar - ${dateStr} ${timeSlot} 통계:`, totalTeams, '팀 /', totalParticipants, '명');
+    }
     
     return {
       teams: totalTeams,
