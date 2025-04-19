@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Calendar from '@/components/Calendar';
+import { isAuthenticated } from '@/utils/auth';
 import { 
   format, 
   startOfMonth, 
@@ -43,22 +44,11 @@ const AdminDashboard = () => {
   const [selectedDateReservations, setSelectedDateReservations] = useState<Reservation[]>([]);
   const [showDateReservationsDialog, setShowDateReservationsDialog] = useState(false);
 
-  // 관리자 인증 여부 확인 함수
-  const checkAdminAuthentication = () => {
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      const trimmedCookie = cookie.trim();
-      if (trimmedCookie.startsWith('adminAuth=true')) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  // 쿠키를 통한 인증 확인
+  // 쿠키와 로컬 스토리지를 통한 인증 확인
   useEffect(() => {
     const checkAuth = () => {
-      const hasAdminAuth = checkAdminAuthentication();
+      const hasAdminAuth = isAuthenticated();
+      console.log("AdminDashboard - 인증 상태:", hasAdminAuth);
       
       if (!hasAdminAuth) {
         toast({
@@ -84,15 +74,17 @@ const AdminDashboard = () => {
   
   // 로그아웃 처리 함수
   const handleLogout = () => {
-    // 쿠키 삭제
-    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
-    toast({
-      title: '로그아웃',
-      description: '관리자 로그아웃 되었습니다.',
+    // auth 유틸리티 함수를 사용하여 쿠키와 로컬 스토리지에서 인증 정보 삭제
+    import('@/utils/auth').then(({ logout }) => {
+      logout();
+      
+      toast({
+        title: '로그아웃',
+        description: '관리자 로그아웃 되었습니다.',
+      });
+      
+      setLocation('/');
     });
-    
-    setLocation('/');
   };
 
   // 모든 예약 가져오기

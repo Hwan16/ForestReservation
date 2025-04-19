@@ -16,6 +16,9 @@ interface CalendarProps {
 const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservations = [] }: CalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
+  // 관리자 모드 상태 로깅
+  console.log("Calendar - isAdminMode:", isAdminMode, "rendered at:", new Date().toISOString());
+  
   const { data: availabilities, isLoading } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
   });
