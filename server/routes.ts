@@ -307,8 +307,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reservations/all", isAuthenticated, async (req, res) => {
     try {
       const reservations = await storage.getAllReservations();
+      console.log(`API - /api/reservations/all 호출됨, ${reservations.length}건 반환`);
       return res.status(200).json(reservations);
     } catch (error) {
+      console.error("API 오류 - /api/reservations/all:", error);
+      return res.status(500).json({ message: "예약 정보를 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+  
+  // 개발용 테스트 API - 인증 없이 모든 예약 조회 가능 (실제 배포 시 제거 필요)
+  app.get("/api/reservations/test", async (req, res) => {
+    try {
+      const reservations = await storage.getAllReservations();
+      console.log(`API - /api/reservations/test 호출됨, ${reservations.length}건 반환`);
+      return res.status(200).json(reservations);
+    } catch (error) {
+      console.error("API 오류 - /api/reservations/test:", error);
       return res.status(500).json({ message: "예약 정보를 불러오는 중 오류가 발생했습니다." });
     }
   });

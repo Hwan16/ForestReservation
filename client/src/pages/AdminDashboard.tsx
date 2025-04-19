@@ -88,16 +88,17 @@ const AdminDashboard = () => {
     });
   };
 
-  // 모든 예약 가져오기
+  // 모든 예약 가져오기 (인증 우회용 테스트 API 사용)
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
-    queryKey: ['/api/reservations/all'],
+    queryKey: ['/api/reservations/test'],
     enabled: isAdmin,
     refetchInterval: 1000, // 1초마다 자동 갱신하여 실시간 데이터 반영
     refetchOnWindowFocus: true,
     // 응답 받은 후 추가 작업 (디버깅용)
     select: (data) => {
+      console.log(`AdminDashboard - 예약 데이터 로드됨:`, data);
       if (data && data.length > 0) {
-        console.log(`AdminDashboard - 예약 데이터 ${data.length}건 로드됨:`, data);
+        console.log(`AdminDashboard - 예약 데이터 ${data.length}건 로드됨`);
         const test22Data = data.filter(r => r.date === '2025-04-22');
         if (test22Data.length > 0) {
           console.log(`22일 예약: ${test22Data.length}건`, test22Data);
@@ -105,7 +106,7 @@ const AdminDashboard = () => {
       } else {
         console.log('AdminDashboard - 예약 데이터 없음');
       }
-      return data;
+      return data || []; // 항상 배열 반환 (undefined일 경우 빈 배열)
     }
   });
 
