@@ -5,13 +5,14 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDate, formatDateForApi } from "@/lib/utils";
 import { TimeSlot, Reservation } from "../types";
-import { createReservationSchema } from "@shared/schema";
+import { createReservationSchema } from "@/lib/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ReservationFormProps {
   selectedDate: Date;
@@ -34,7 +35,8 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
       instName: "",
       phone: "",
       participants: 10,
-      notes: "",
+      desiredActivity: "all" as const,
+      parentParticipation: "no" as const,
     },
   });
 
@@ -249,16 +251,70 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
             )}
           />
           
-
+          <FormField
+            control={form.control}
+            name="desiredActivity"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel>희망 활동 *</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex flex-col space-y-1"
+                  >
+                    <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="all" />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        모두(숲 놀이, 체험 활동)
+                      </FormLabel>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="experience" />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        체험 활동만
+                      </FormLabel>
+                    </FormItem>
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
           <FormField
             control={form.control}
-            name="notes"
+            name="parentParticipation"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>특이사항 (선택)</FormLabel>
+              <FormItem className="space-y-3">
+                <FormLabel>학부모 참여 여부 *</FormLabel>
                 <FormControl>
-                  <Textarea rows={3} {...field} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex flex-col space-y-1"
+                  >
+                    <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="no" />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        아니오 (선생님 및 어린이만 참여)
+                      </FormLabel>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="yes" />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        예
+                      </FormLabel>
+                    </FormItem>
+                  </RadioGroup>
                 </FormControl>
                 <FormMessage />
               </FormItem>

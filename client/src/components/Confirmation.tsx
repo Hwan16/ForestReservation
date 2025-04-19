@@ -1,8 +1,10 @@
+import React from "react";
 import { Link } from "wouter";
 import { formatDate } from "@/lib/utils";
 import { Reservation } from "../types";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
+import ReservationItem from './ReservationItem.tsx';
 
 interface ConfirmationProps {
   reservation: Reservation;
@@ -13,6 +15,16 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
   const timeLabel = reservation.timeSlot === "morning" 
     ? "오전반 (09:00 - 13:00)" 
     : <span className="text-blue-600 font-medium">오후반 (14:00 - 18:00)</span>;
+  
+  // 희망 활동 표시
+  const activityLabel = reservation.desiredActivity === "all"
+    ? "모두(숲 놀이, 체험 활동)"
+    : "체험 활동만";
+  
+  // 학부모 참여 여부 표시
+  const parentParticipationLabel = reservation.parentParticipation === "yes"
+    ? "예"
+    : "아니오 (선생님 및 어린이만 참여)";
   
   const reservationDate = new Date(reservation.date);
 
@@ -28,7 +40,9 @@ const Confirmation = ({ reservation }: ConfirmationProps) => {
         <p className="mb-2"><span className="font-medium">어린이집/유치원 이름:</span> {reservation.name}</p>
         <p className="mb-2"><span className="font-medium">원장님/선생님 성함:</span> {reservation.instName}</p>
         <p className="mb-2"><span className="font-medium">연락처:</span> {reservation.phone}</p>
-        <p><span className="font-medium">참여 어린이 인원수:</span> {reservation.participants}명</p>
+        <p className="mb-2"><span className="font-medium">참여 어린이 인원수:</span> {reservation.participants}명</p>
+        <p className="mb-2"><span className="font-medium">희망 활동:</span> {activityLabel}</p>
+        <p><span className="font-medium">학부모 참여 여부:</span> {parentParticipationLabel}</p>
       </div>
       <div className="mt-16">
         <Button 

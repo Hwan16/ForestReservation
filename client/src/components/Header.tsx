@@ -51,11 +51,15 @@ const Header = () => {
     setLocation('/');
   };
 
+  // 현재 페이지 정보 가져오기
+  const [location] = useLocation();
+  const isAdminPage = location.startsWith('/admin');
+
   return (
     <>
       <div className="flex justify-end bg-white p-2 border-b">
         <div className="container mx-auto px-4 flex justify-end space-x-4">
-          <Link href="/mypage" className="text-neutral-dark hover:text-primary text-sm">마이페이지</Link>
+          {!isAdminPage && <Link href="/mypage" className="text-neutral-dark hover:text-primary text-sm">마이페이지</Link>}
           {isAdmin ? (
             <a 
               href="#" 
@@ -94,17 +98,20 @@ const Header = () => {
               </h1>
             </Link>
           </div>
-          <div className="flex items-center">
-            <nav className="hidden md:block">
-              <ul className="flex space-x-6">
-                <li><Link href="/program" className="text-neutral-dark hover:text-primary">체험원 프로그램</Link></li>
-                <li><Link href="/" className="text-neutral-dark hover:text-primary">예약하기</Link></li>
-                {isAdmin && (
-                  <li><Link href="/admin" className="text-primary hover:text-primary-dark">관리자 대시보드</Link></li>
-                )}
-              </ul>
-            </nav>
-          </div>
+          {/* 관리자 모드에서는 버튼이 표시되지 않도록 수정 */}
+          {!isAdminPage && (
+            <div className="flex items-center">
+              <nav className="hidden md:block">
+                <ul className="flex space-x-6">
+                  <li><Link href="/program" className="text-neutral-dark hover:text-primary">체험원 프로그램</Link></li>
+                  <li><Link href="/" className="text-neutral-dark hover:text-primary">예약하기</Link></li>
+                  {isAdmin && (
+                    <li><Link href="/admin" className="text-primary hover:text-primary-dark">관리자 대시보드</Link></li>
+                  )}
+                </ul>
+              </nav>
+            </div>
+          )}
         </div>
       </header>
       

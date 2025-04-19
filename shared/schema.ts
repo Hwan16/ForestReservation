@@ -21,7 +21,8 @@ export const reservations = pgTable("reservations", {
   phone: text("phone").notNull(),
   email: text("email"),
   participants: integer("participants").notNull(),
-  notes: text("notes"),
+  desiredActivity: text("desired_activity").notNull(), // "all" or "experience"
+  parentParticipation: text("parent_participation").notNull(), // "yes" or "no"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -60,7 +61,13 @@ export const createReservationSchema = z.object({
     required_error: "인원수는 필수 입력 항목입니다.",
     invalid_type_error: "인원수는 숫자로 입력해야 합니다."
   }).min(1, "최소 1명 이상이어야 합니다.").max(30, "최대 30명까지 예약 가능합니다."),
-  notes: z.string().optional().or(z.literal("")),
+  desiredActivity: z.enum(["all", "experience"], {
+    required_error: "희망 활동을 선택해주세요.",
+    invalid_type_error: "잘못된 활동 유형입니다."
+  }),
+  parentParticipation: z.enum(["yes", "no"], {
+    required_error: "학부모 참여 여부를 선택해주세요."
+  }),
 });
 
 export const loginSchema = z.object({

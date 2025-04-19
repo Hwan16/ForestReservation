@@ -1,17 +1,28 @@
+/**
+ * 애플리케이션에서 사용되는 타입 정의
+ */
+
+// 예약 단계
+export type Step = "date" | "time" | "info" | "confirmation";
+
+// 예약 시간대
 export type TimeSlot = "morning" | "afternoon";
 
-export type Reservation = {
-  id: string;
+// 예약 정보 인터페이스
+export interface Reservation {
+  id?: number;
+  reservationId?: string;
   date: string;
   timeSlot: TimeSlot;
-  name: string;  // 어린이집/유치원 이름
-  instName: string;  // 원장님/선생님 성함
+  name: string;
+  instName: string;
   phone: string;
-  email?: string;
   participants: number;
+  desiredActivity?: "all" | "experience";
+  parentParticipation?: "yes" | "no";
   notes?: string;
-  createdAt: string;
-};
+  timestamp?: string;
+}
 
 export type AvailabilityStatus = {
   morning: {
@@ -26,9 +37,19 @@ export type AvailabilityStatus = {
   };
 };
 
-export type DayAvailability = {
+// 날짜별 예약 가능 여부
+export interface DayAvailability {
   date: string;
   status: AvailabilityStatus;
-};
+  morningAvailable?: boolean;
+  afternoonAvailable?: boolean;
+  morningCount?: number;
+  afternoonCount?: number;
+}
 
-export type Step = "date" | "time" | "info" | "confirmation";
+// 캘린더 날짜 인터페이스
+export interface CalendarDate {
+  date: string;
+  morningReserved: boolean;
+  afternoonReserved: boolean;
+}

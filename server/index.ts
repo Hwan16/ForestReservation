@@ -1,11 +1,32 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import MemoryStore from "memorystore";
+import http from "http";
 
 const app = express();
+const SessionStore = MemoryStore(session);
+
+// 세션 설정
+app.use(session({
+  secret: process.env.SESSION_SECRET || "areum-forest-secret",
+  resave: false,
+  saveUninitialized: false,
+  store: new SessionStore({
+    checkPeriod: 86400000 // 24시간
+  }),
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000, // 24시간
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true
+  }
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// 로깅 미들웨어
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -37,34 +58,40 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // 에러 핸들링 미들웨어
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      log(`Error: ${message}`);
+      res.status(status).json({ message });
+    });
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    server.listen(port, '0.0.0.0', () => {
+      log(`Server running at http://localhost:${port}`);
+    }).on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use. Trying port ${port + 1}...`);
+        server.listen(port + 1, '0.0.0.0', () => {
+          log(`Server running at http://localhost:${port + 1}`);
+        });
+      } else {
+        log(`Error starting server: ${error.message}`);
+        process.exit(1);
+      }
+    });
+    
+  } catch (error) {
+    log(`Fatal error: ${error}`);
+    process.exit(1);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

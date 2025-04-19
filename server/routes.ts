@@ -5,9 +5,11 @@ import express from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { generateReservationId } from "../client/src/lib/utils";
-import { createReservationSchema, loginSchema } from "../shared/schema";
+import { createReservationSchema, loginSchema, reservations } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { eq, asc } from "drizzle-orm";
+import { db } from "./db";
 
 // Create memory store for sessions
 const SessionStore = MemoryStore(session);
@@ -304,14 +306,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reservations/all", isAuthenticated, async (req, res) => {
+  // 관리자 인증 미들웨어
+  const isAdmin = (req: Request, res: Response, next: Function) => {
+    const adminPassword = req.cookies.adminAuth;
+    if (adminPassword === "1005") {
+      return next();
+    }
+    return res.status(401).json({ message: "관리자 인증이 필요합니다." });
+  };
+
+  // 관리자 로그인 라우트
+  app.post("/api/admin/login", (req: Request, res: Response) => {
+    const { password } = req.body;
+    if (password === "1005") {
+      res.cookie("adminAuth", "1005", {
+        maxAge: 24 * 60 * 60 * 1000, // 24시간
+        httpOnly: true
+      });
+      return res.json({ message: "로그인 성공" });
+    }
+    return res.status(401).json({ message: "비밀번호가 올바르지 않습니다." });
+  });
+
+  // 예약 조회 API에 관리자 인증 미들웨어 적용
+  app.get("/api/reservations/all", isAdmin, async (req: Request, res: Response) => {
     try {
       const reservations = await storage.getAllReservations();
-      console.log(`API - /api/reservations/all 호출됨, ${reservations.length}건 반환`);
-      return res.status(200).json(reservations);
+      res.json(reservations);
     } catch (error) {
-      console.error("API 오류 - /api/reservations/all:", error);
-      return res.status(500).json({ message: "예약 정보를 불러오는 중 오류가 발생했습니다." });
+      res.status(500).json({ message: "예약 정보를 가져오는데 실패했습니다." });
     }
   });
   
@@ -378,6 +401,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json({ message: "예약이 성공적으로 삭제되었습니다." });
     } catch (error) {
       return res.status(500).json({ message: "예약 삭제 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 날짜별 예약 데이터 조회
+  app.get('/api/reservations/date/:date', async (req, res) => {
+    try {
+      const { date } = req.params;
+      const reservations = await db
+        .select()
+        .from(reservations)
+        .where(eq(reservations.date, date))
+        .orderBy(asc(reservations.timeSlot));
+
+      res.json(reservations);
+    } catch (error) {
+      console.error('예약 데이터 조회 중 오류 발생:', error);
+      res.status(500).json({ error: '예약 데이터를 불러오는 중 오류가 발생했습니다.' });
     }
   });
 

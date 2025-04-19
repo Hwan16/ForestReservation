@@ -64,6 +64,8 @@ const ReservationDetailDialog = ({
             <TableHead>원장님/선생님 성함</TableHead>
             <TableHead>연락처</TableHead>
             <TableHead>인원수</TableHead>
+            <TableHead>희망 활동</TableHead>
+            <TableHead>학부모 참여</TableHead>
             <TableHead>특이사항</TableHead>
             <TableHead>관리</TableHead>
           </TableRow>
@@ -77,6 +79,8 @@ const ReservationDetailDialog = ({
               <TableCell>{reservation.instName}</TableCell>
               <TableCell>{reservation.phone}</TableCell>
               <TableCell>{reservation.participants}명</TableCell>
+              <TableCell>{reservation.desiredActivity === 'all' ? '모두(숲 놀이, 체험 활동)' : '체험 활동만'}</TableCell>
+              <TableCell>{reservation.parentParticipation === 'yes' ? '예' : '아니오 (선생님 및 어린이만 참여)'}</TableCell>
               <TableCell>{reservation.notes || '-'}</TableCell>
               <TableCell>
                 <Button 

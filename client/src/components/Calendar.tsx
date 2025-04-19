@@ -16,21 +16,6 @@ interface CalendarProps {
 const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservations = [] }: CalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
-  // 관리자 모드 상태 로깅
-  console.log("Calendar - isAdminMode:", isAdminMode, "rendered at:", new Date().toISOString());
-  
-  // 받은 예약 데이터 전체 로깅 (디버깅용)
-  console.log("Calendar - 전달받은 예약 데이터:", reservations.length, "건");
-  if (reservations.length > 0) {
-    console.log("Calendar - 예약 첫 번째 항목:", reservations[0]);
-    
-    // 2025-04-22 날짜에 대한 예약 확인
-    const testDateStr = '2025-04-22';
-    const testDateReservations = reservations.filter(r => r.date === testDateStr);
-    console.log(`Calendar - ${testDateStr} 예약:`, testDateReservations.length, "건");
-    testDateReservations.forEach((r, i) => console.log(`  예약 ${i+1}:`, r.timeSlot, r.participants, "명"));
-  }
-  
   // 관리자 모드일 경우 더 자주 갱신
   const { data: availabilities, isLoading, refetch: refetchAvailabilities } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
@@ -46,44 +31,18 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     refetchInterval: 1000, // 1초마다 자동 갱신
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    select: (data) => {
-      console.log("Calendar - API에서 예약 데이터 로드:", data ? data.length : 0, "건");
-      // 4월 22일 예약 체크
-      if (data && data.length > 0) {
-        const apr22 = data.filter(r => r.date === '2025-04-22');
-        if (apr22.length > 0) {
-          console.log("Calendar - API에서 가져온 22일 예약:", apr22.length, "건", apr22);
-        }
-      }
-      return data || [];
-    }
   });
   
-  // 예약 정보 가져오는 주기를 짧게 설정하여 최신 데이터 유지
+  // 예약 정보 주기적 갱신
   useEffect(() => {
     if (isAdminMode) {
       const intervalId = setInterval(() => {
-        // 콘솔에 현재 예약 정보 로깅
-        console.log("Calendar - 예약 데이터 강제 갱신 중...", new Date().toLocaleTimeString());
-        console.log("Calendar - 현재 예약 데이터:", reservations);
-        
-        // 2025-04-22 예약 데이터 체크
-        const apr22Reservations = reservations.filter(r => r.date === '2025-04-22');
-        if (apr22Reservations.length > 0) {
-          console.log("Calendar - 22일 예약:", apr22Reservations.length, "건", apr22Reservations);
-          
-          const morning = apr22Reservations.filter(r => r.timeSlot === 'morning');
-          const afternoon = apr22Reservations.filter(r => r.timeSlot === 'afternoon');
-          
-          console.log("Calendar - 22일 오전:", morning.length, "건, 오후:", afternoon.length, "건");
-        }
-        
         refetchAvailabilities();
       }, 1000); // 1초로 단축
       
       return () => clearInterval(intervalId);
     }
-  }, [isAdminMode, refetchAvailabilities, reservations]);
+  }, [isAdminMode, refetchAvailabilities]);
 
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   
@@ -110,7 +69,6 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     if (getDay(day) === 0) return false;
     
     const dateStr = format(day, 'yyyy-MM-dd');
-    console.log("Calendar - checking date:", dateStr, "day:", getDay(day));
     
     if (!availabilities) return false;
     
@@ -123,11 +81,10 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     
     // API 응답의 available 속성을 그대로 사용
     const isAvailable = availability.status.morning.available || availability.status.afternoon.available;
-    console.log("Calendar - availability for", dateStr, ":", isAvailable);
     return isAvailable;
   };
 
-  // 날짜별, 시간대별 예약 조회 함수 (API에서 직접 가져오도록 수정)
+  // 날짜별, 시간대별 예약 조회 함수
   const getReservationsForDate = (date: Date, timeSlot?: "morning" | "afternoon") => {
     const dateStr = format(date, 'yyyy-MM-dd');
     
@@ -162,20 +119,6 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
       filteredReservations = filteredReservations.filter(r => r.timeSlot === timeSlot);
     }
     
-    // 디버깅을 위한 로그 (중요 날짜만)
-    if (filteredReservations.length > 0 && dateStr === '2025-04-22') {
-      console.log(`Calendar - 예약 데이터 for ${dateStr} ${timeSlot || 'all'}:`, 
-        filteredReservations.length, 
-        '예약, 총 인원:', 
-        filteredReservations.reduce((sum, r) => sum + r.participants, 0)
-      );
-      
-      // 세부 내용 확인
-      filteredReservations.forEach((r, idx) => {
-        console.log(`  예약 ${idx+1}: ${r.name}, ${r.timeSlot}, ${r.participants}명`);
-      });
-    }
-    
     return filteredReservations;
   };
   
@@ -184,75 +127,78 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
     const totalTeams = reservationsForSlot.length;
     const totalParticipants = reservationsForSlot.reduce((sum, res) => sum + res.participants, 0);
     
-    // 상세 로깅 (디버깅용)
-    const dateStr = format(date, 'yyyy-MM-dd');
-    if (dateStr === '2025-04-22') {
-      console.log(`Calendar - ${dateStr} ${timeSlot} 통계:`, totalTeams, '팀 /', totalParticipants, '명');
-    }
-    
     return {
       teams: totalTeams,
       participants: totalParticipants
     };
   };
 
+  // 날짜가 클릭되었을 때 호출되는 함수에서도 일관된 이름 사용
+  const handleDateClick = (day: Date) => {
+    if (isAdminMode || isDateAvailable(day)) {
+      onSelectDate(day);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-      <div className="flex flex-col items-center mb-6">
-        <h2 className="text-2xl font-bold text-center mb-4">
-          {isAdminMode ? "예약 현황 관리" : "체험 예약하기"}
-        </h2>
-        <h3 className="text-gray-500 text-center mb-6">
-          {isAdminMode ? "Reservation Management" : "Reservation"}
-        </h3>
-        
-        <div className="flex justify-between items-center w-full">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onPrevMonth}
-            className="p-2 rounded hover:bg-gray-100"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="w-5 h-5"
-            >
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-          </Button>
-          
-          <h2 className="text-xl font-semibold">{formatMonth(currentMonth)}</h2>
-          
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onNextMonth}
-            className="p-2 rounded hover:bg-gray-100"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="w-5 h-5"
-            >
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </Button>
+      {!isAdminMode && (
+        <div className="flex flex-col items-center mb-6">
+          <h2 className="text-2xl font-bold text-center mb-4">
+            체험 예약하기
+          </h2>
+          <h3 className="text-gray-500 text-center mb-6">
+            Reservation
+          </h3>
         </div>
+      )}
+      
+      <div className="flex justify-between items-center w-full mb-6">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={onPrevMonth}
+          className="p-2 rounded hover:bg-gray-100"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className="w-5 h-5"
+          >
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </Button>
+        
+        <h2 className="text-xl font-semibold">{formatMonth(currentMonth)}</h2>
+        
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={onNextMonth}
+          className="p-2 rounded hover:bg-gray-100"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className="w-5 h-5"
+          >
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </Button>
       </div>
       
       {/* Calendar Days of Week */}
@@ -293,12 +239,7 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
                   ${!isSelected && isAdminMode && !isSunday ? 'bg-blue-50 border border-blue-200 hover:bg-blue-100' : ''}
                   ${isSunday ? 'bg-red-50 border border-red-200 text-red-500' : ''}
                   transition-colors`}
-                onClick={() => {
-                  if (isAdminMode || available) {
-                    console.log("Calendar - Selected date:", dateStr, "day:", getDay(day));
-                    onSelectDate(day);
-                  }
-                }}
+                onClick={() => handleDateClick(day)}
                 disabled={!isAdminMode && (!available || isSunday)}
               >
                 <span className={`text-sm md:text-base font-medium ${isSunday ? 'text-red-500' : ''}`}>
