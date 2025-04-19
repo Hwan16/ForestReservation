@@ -97,19 +97,30 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
 
   const getReservationsForDate = (date: Date, timeSlot?: "morning" | "afternoon") => {
     const dateStr = format(date, 'yyyy-MM-dd');
+    
+    // 유효성 검사 추가 (reservations가 undefined 또는 null인 경우 빈 배열 반환)
+    if (!reservations || reservations.length === 0) {
+      return [];
+    }
+    
     let filteredReservations = reservations.filter(r => r.date === dateStr);
     
     if (timeSlot) {
       filteredReservations = filteredReservations.filter(r => r.timeSlot === timeSlot);
     }
     
-    // 디버깅을 위한 로그 추가
-    if (dateStr === '2025-04-22') {
+    // 디버깅을 위한 로그 추가 (모든 날짜에 대해 로깅)
+    if (filteredReservations.length > 0) {
       console.log(`Calendar - 예약 데이터 for ${dateStr} ${timeSlot || 'all'}:`, 
         filteredReservations.length, 
         '예약, 총 인원:', 
         filteredReservations.reduce((sum, r) => sum + r.participants, 0)
       );
+      
+      // 세부 내용 확인 (각 예약의 정보 출력)
+      filteredReservations.forEach((r, idx) => {
+        console.log(`  예약 ${idx+1}: ${r.name}, ${r.timeSlot}, ${r.participants}명`);
+      });
     }
     
     return filteredReservations;

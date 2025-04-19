@@ -94,6 +94,17 @@ const AdminDashboard = () => {
     enabled: isAdmin,
     refetchInterval: 3000, // 3초마다 자동 갱신하여 실시간 데이터 반영
     refetchOnWindowFocus: true,
+    // 응답 받은 후 추가 작업 (디버깅용)
+    select: (data) => {
+      if (data && data.length > 0) {
+        console.log(`AdminDashboard - 예약 데이터 ${data.length}건 로드됨`);
+        const test22Data = data.filter(r => r.date === '2025-04-22');
+        if (test22Data.length > 0) {
+          console.log(`22일 예약: ${test22Data.length}건`, test22Data);
+        }
+      }
+      return data;
+    }
   });
 
   // 월별 가용성 가져오기
@@ -282,8 +293,8 @@ const AdminDashboard = () => {
           console.log("22일 예약 데이터 내용:", JSON.stringify(dateReservations));
           console.log("전체 데이터 길이:", data.length);
           
-          const morningReservations = dateReservations.filter(r => r.timeSlot === 'morning');
-          const afternoonReservations = dateReservations.filter(r => r.timeSlot === 'afternoon');
+          const morningReservations = dateReservations.filter((r: Reservation) => r.timeSlot === 'morning');
+          const afternoonReservations = dateReservations.filter((r: Reservation) => r.timeSlot === 'afternoon');
           
           console.log(`오전반: ${morningReservations.length}건, 오후반: ${afternoonReservations.length}건`);
         }
