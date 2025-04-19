@@ -23,12 +23,9 @@ const Header = () => {
             </Link>
           </div>
           <div className="flex items-center">
-            <Link href="/" className="text-red-600 px-4 py-2 rounded bg-red-100 hover:bg-red-200 font-medium mr-4 hidden md:block">
-              실시간 예약
-            </Link>
             <nav className="hidden md:block">
               <ul className="flex space-x-6">
-                <li><Link href="/program" className="text-neutral-dark hover:text-primary">아름 유아숲 체험원 프로그램</Link></li>
+                <li><Link href="/program" className="text-neutral-dark hover:text-primary">체험원 프로그램</Link></li>
                 <li><Link href="/" className="text-neutral-dark hover:text-primary">예약하기</Link></li>
               </ul>
             </nav>

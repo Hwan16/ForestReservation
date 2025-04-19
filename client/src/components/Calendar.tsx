@@ -69,7 +69,7 @@ const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
       <div className="flex flex-col items-center mb-6">
-        <h2 className="text-2xl font-bold text-center mb-4">실시간 예약</h2>
+        <h2 className="text-2xl font-bold text-center mb-4">체험 예약하기</h2>
         <h3 className="text-gray-500 text-center mb-6">Reservation</h3>
         
         <div className="flex justify-between items-center w-full">
