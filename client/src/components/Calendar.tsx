@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatMonth } from "@/lib/utils";
 import { DayAvailability, Reservation } from "../types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
@@ -171,8 +172,9 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
               <button 
                 className={`w-full h-full flex flex-col justify-center items-center rounded-lg p-2
                   ${isSelected ? 'bg-primary text-white' : ''} 
-                  ${!isSelected && available ? 'bg-green-50 border border-green-200 hover:bg-green-100' : ''} 
-                  ${!isSelected && !available && !isSunday ? 'bg-gray-50 border border-gray-200 text-gray-400' : ''}
+                  ${!isSelected && available && !isAdminMode ? 'bg-green-50 border border-green-200 hover:bg-green-100' : ''} 
+                  ${!isSelected && !available && !isSunday && !isAdminMode ? 'bg-gray-50 border border-gray-200 text-gray-400' : ''}
+                  ${!isSelected && isAdminMode && !isSunday ? 'bg-blue-50 border border-blue-200 hover:bg-blue-100' : ''}
                   ${isSunday ? 'bg-red-50 border border-red-200 text-red-500' : ''}
                   transition-colors`}
                 onClick={() => {

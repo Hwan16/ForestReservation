@@ -70,7 +70,7 @@ const Header = () => {
             <a 
               href="#" 
               onClick={handleLogout}
-              className="text-red-600 hover:text-red-800 text-sm cursor-pointer"
+              className="text-red-600 hover:text-red-800 text-sm cursor-pointer font-medium"
             >
               로그아웃
             </a>
