@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import StepsIndicator from "@/components/StepsIndicator";
@@ -7,12 +7,30 @@ import TimeSelection from "@/components/TimeSelection";
 import ReservationForm from "@/components/ReservationForm";
 import Confirmation from "@/components/Confirmation";
 import { Step, TimeSlot, Reservation } from "../types";
+import { isAuthenticated } from "@/utils/auth";
 
 const Home = () => {
   const [currentStep, setCurrentStep] = useState<Step>("date");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<TimeSlot | null>(null);
   const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  
+  // 관리자 인증 여부 확인
+  useEffect(() => {
+    const checkAdminStatus = () => {
+      const adminStatus = isAuthenticated();
+      setIsAdmin(adminStatus);
+    };
+    
+    // 초기 확인
+    checkAdminStatus();
+    
+    // 1초마다 인증 상태 확인
+    const intervalId = setInterval(checkAdminStatus, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -47,10 +65,14 @@ const Home = () => {
           
           <div className="max-w-3xl mx-auto">
             {currentStep === "date" && (
-              <Calendar 
-                onSelectDate={handleDateSelect}
-                selectedDate={selectedDate}
-              />
+              <>
+                {console.log("Home - isAdmin:", isAdmin)}
+                <Calendar 
+                  onSelectDate={handleDateSelect}
+                  selectedDate={selectedDate}
+                  isAdminMode={isAdmin}
+                />
+              </>
             )}
 
             {currentStep === "time" && selectedDate && (

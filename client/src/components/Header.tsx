@@ -4,30 +4,20 @@ import { useState, useEffect } from "react";
 import PasswordModal from "./PasswordModal";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-
-// 관리자 인증 여부를 체크하는 함수
-const isAdminAuthenticated = () => {
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
-    const trimmedCookie = cookie.trim();
-    if (trimmedCookie.startsWith('adminAuth=true')) {
-      return true;
-    }
-  }
-  return false;
-};
+import { isAuthenticated, logout } from "@/utils/auth";
 
 const Header = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(isAdminAuthenticated());
+  const [isAdmin, setIsAdmin] = useState(isAuthenticated());
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
 
-  // 1초마다 쿠키 상태 확인 (관리자 로그인/로그아웃 상태 변화 감지)
+  // 1초마다 인증 상태 확인 (관리자 로그인/로그아웃 상태 변화 감지)
   useEffect(() => {
     const checkAdminStatus = () => {
-      const adminStatus = isAdminAuthenticated();
+      const adminStatus = isAuthenticated();
       if (adminStatus !== isAdmin) {
+        console.log("Header - 인증 상태 변경:", adminStatus);
         setIsAdmin(adminStatus);
       }
     };
@@ -35,7 +25,7 @@ const Header = () => {
     // 초기 확인
     checkAdminStatus();
     
-    // 정기적인 쿠키 상태 확인
+    // 정기적인 인증 상태 확인
     const intervalId = setInterval(checkAdminStatus, 1000);
     
     // 컴포넌트 언마운트 시 인터벌 정리
@@ -48,8 +38,8 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    // 쿠키 삭제
-    document.cookie = 'adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    // auth 유틸리티 함수를 사용하여 쿠키와 로컬 스토리지에서 인증 정보 삭제
+    logout();
     setIsAdmin(false);
     
     toast({

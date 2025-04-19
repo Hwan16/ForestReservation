@@ -31,13 +31,23 @@ const PasswordModal = ({ isOpen, onClose }: PasswordModalProps) => {
         description: "관리자 페이지로 이동합니다.",
       });
       
+      // 기존 쿠키를 모두 확인
+      console.log("로그인 전 쿠키 값:", document.cookie);
+      
+      // 쿠키 삭제 먼저 시도
+      document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
       // 쿠키를 설정하여 1시간 동안 인증 유지
       const date = new Date();
       date.setTime(date.getTime() + 60 * 60 * 1000); // 1시간
-      // 보안을 위해 쿠키 설정을 명확하게 작성
-      document.cookie = `adminAuth=true; expires=${date.toUTCString()}; path=/; SameSite=Strict`;
       
-      console.log("관리자 로그인 성공! 쿠키 설정:", document.cookie);
+      // 보안을 위해 쿠키 설정을 명확하게 작성 (도메인 지정하지 않음)
+      document.cookie = "adminAuth=true; max-age=3600; path=/";
+      
+      console.log("관리자 로그인 성공! 쿠키 설정 후:", document.cookie);
+      
+      // 로컬 스토리지에도 백업 (도메인 제한으로 쿠키가 동작하지 않을 경우 대비)
+      localStorage.setItem('adminAuth', 'true');
       
       // 사용자 경험 개선을 위해 약간의 딜레이 후 페이지 이동
       setTimeout(() => {
