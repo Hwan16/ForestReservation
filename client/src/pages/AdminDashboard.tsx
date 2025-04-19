@@ -259,18 +259,34 @@ const AdminDashboard = () => {
     // 서버에서 최신 데이터를 직접 가져와서 UI 업데이트
     const fetchLatestReservations = async () => {
       try {
-        const response = await fetch('/api/reservations/all');
-        if (!response.ok) {
-          throw new Error('예약 데이터를 가져오는데 실패했습니다');
-        }
-        
-        const data = await response.json();
-        queryClient.setQueryData(['/api/reservations/all'], data);
+        // 강제로 새로운 데이터 로드
+        await queryClient.invalidateQueries({ queryKey: ['/api/reservations/all'] });
+        const { data } = await queryClient.fetchQuery({
+          queryKey: ['/api/reservations/all'],
+          queryFn: async () => {
+            const response = await fetch('/api/reservations/all');
+            if (!response.ok) {
+              throw new Error('예약 데이터를 가져오는데 실패했습니다');
+            }
+            return response.json();
+          }
+        });
         
         const dateStr = format(date, 'yyyy-MM-dd');
         const dateReservations = data.filter((r: Reservation) => r.date === dateStr);
         
         console.log(`날짜 ${dateStr} 선택됨, 예약 ${dateReservations.length}건 찾음`);
+        
+        // 디버깅을 위한 로그 추가
+        if (dateStr === '2025-04-22') {
+          console.log("22일 예약 데이터 내용:", JSON.stringify(dateReservations));
+          console.log("전체 데이터 길이:", data.length);
+          
+          const morningReservations = dateReservations.filter(r => r.timeSlot === 'morning');
+          const afternoonReservations = dateReservations.filter(r => r.timeSlot === 'afternoon');
+          
+          console.log(`오전반: ${morningReservations.length}건, 오후반: ${afternoonReservations.length}건`);
+        }
         
         setSelectedDate(date);
         setSelectedDateReservations(dateReservations);
