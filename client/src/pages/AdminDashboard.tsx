@@ -333,20 +333,30 @@ const AdminDashboard = () => {
                 onSelectDate={(date) => {
                   setSelectedDate(date);
                   
-                  // 예약 리스트 다이얼로그 표시
-                  const dateStr = format(date, 'yyyy-MM-dd');
-                  const dateReservations = reservations?.filter(r => r.date === dateStr) || [];
+                  // 캐시를 무효화하여 최신 데이터 불러오기
+                  queryClient.invalidateQueries({ queryKey: ['/api/reservations/all'] });
                   
-                  if (dateReservations.length > 0) {
-                    // 선택한 날짜의 모든 예약 정보를 저장하고 다이얼로그 표시
-                    setSelectedDateReservations(dateReservations);
-                    setShowDateReservationsDialog(true);
-                  } else {
-                    toast({
-                      title: '알림',
-                      description: '선택한 날짜에 예약이 없습니다.',
-                    });
-                  }
+                  setTimeout(() => {
+                    // 예약 리스트 다이얼로그 표시
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    
+                    // 최신 데이터로 다시 필터링
+                    const updatedReservations = queryClient.getQueryData<Reservation[]>(['/api/reservations/all']) || [];
+                    const dateReservations = updatedReservations.filter(r => r.date === dateStr);
+                    
+                    console.log("날짜 선택:", dateStr, "필터링된 예약:", dateReservations.length, "총 예약:", updatedReservations.length);
+                    
+                    if (dateReservations.length > 0) {
+                      // 선택한 날짜의 모든 예약 정보를 저장하고 다이얼로그 표시
+                      setSelectedDateReservations(dateReservations);
+                      setShowDateReservationsDialog(true);
+                    } else {
+                      toast({
+                        title: '알림',
+                        description: '선택한 날짜에 예약이 없습니다.',
+                      });
+                    }
+                  }, 300); // 쿼리가 완료될 시간을 줌
                 }}
                 selectedDate={selectedDate}
                 isAdminMode={true}
@@ -551,198 +561,173 @@ const AdminDashboard = () => {
               {selectedDate && `${formatDate(selectedDate)} 예약 목록`}
             </DialogTitle>
             <DialogDescription>
-              선택한 날짜에 대한 모든 예약 정보입니다. 탭을 이용해 오전/오후 예약을 확인할 수 있습니다.
+              선택한 날짜의 모든 예약 정보입니다. (오전/오후 시간대별로 확인하세요)
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="all" className="mt-4">
-            <TabsList>
-              <TabsTrigger value="all">전체</TabsTrigger>
-              <TabsTrigger value="morning">오전반</TabsTrigger>
-              <TabsTrigger value="afternoon">오후반</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all">
-              <div className="overflow-x-auto max-h-[60vh]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>예약번호</TableHead>
-                      <TableHead>시간</TableHead>
-                      <TableHead>이름</TableHead>
-                      <TableHead>담당자</TableHead>
-                      <TableHead>인원</TableHead>
-                      <TableHead>연락처</TableHead>
-                      <TableHead>이메일</TableHead>
-                      <TableHead>관리</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedDateReservations.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center">예약 내역이 없습니다.</TableCell>
-                      </TableRow>
-                    ) : (
-                      selectedDateReservations.map((reservation) => (
-                        <TableRow key={reservation.id}>
-                          <TableCell className="font-medium">{reservation.id.substring(0, 8)}</TableCell>
-                          <TableCell>
-                            <Badge variant={reservation.timeSlot === 'morning' ? 'outline' : 'default'}>
-                              {reservation.timeSlot === 'morning' ? '오전반' : '오후반'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{reservation.name}</TableCell>
-                          <TableCell>{reservation.instName}</TableCell>
-                          <TableCell>{reservation.participants}명</TableCell>
-                          <TableCell>{reservation.phone}</TableCell>
-                          <TableCell>{reservation.email || '-'}</TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedReservation(reservation);
-                                setShowDateReservationsDialog(false);
-                                setShowDeleteDialog(true);
-                              }}
-                            >
-                              삭제
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="morning">
-              <div className="overflow-x-auto max-h-[60vh]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>예약번호</TableHead>
-                      <TableHead>이름</TableHead>
-                      <TableHead>담당자</TableHead>
-                      <TableHead>인원</TableHead>
-                      <TableHead>연락처</TableHead>
-                      <TableHead>이메일</TableHead>
-                      <TableHead>관리</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedDateReservations.filter(r => r.timeSlot === 'morning').length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center">오전반 예약 내역이 없습니다.</TableCell>
-                      </TableRow>
-                    ) : (
-                      selectedDateReservations.filter(r => r.timeSlot === 'morning').map((reservation) => (
-                        <TableRow key={reservation.id}>
-                          <TableCell className="font-medium">{reservation.id.substring(0, 8)}</TableCell>
-                          <TableCell>{reservation.name}</TableCell>
-                          <TableCell>{reservation.instName}</TableCell>
-                          <TableCell>{reservation.participants}명</TableCell>
-                          <TableCell>{reservation.phone}</TableCell>
-                          <TableCell>{reservation.email || '-'}</TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedReservation(reservation);
-                                setShowDateReservationsDialog(false);
-                                setShowDeleteDialog(true);
-                              }}
-                            >
-                              삭제
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="afternoon">
-              <div className="overflow-x-auto max-h-[60vh]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>예약번호</TableHead>
-                      <TableHead>이름</TableHead>
-                      <TableHead>담당자</TableHead>
-                      <TableHead>인원</TableHead>
-                      <TableHead>연락처</TableHead>
-                      <TableHead>이메일</TableHead>
-                      <TableHead>관리</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedDateReservations.filter(r => r.timeSlot === 'afternoon').length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center">오후반 예약 내역이 없습니다.</TableCell>
-                      </TableRow>
-                    ) : (
-                      selectedDateReservations.filter(r => r.timeSlot === 'afternoon').map((reservation) => (
-                        <TableRow key={reservation.id}>
-                          <TableCell className="font-medium">{reservation.id.substring(0, 8)}</TableCell>
-                          <TableCell>{reservation.name}</TableCell>
-                          <TableCell>{reservation.instName}</TableCell>
-                          <TableCell>{reservation.participants}명</TableCell>
-                          <TableCell>{reservation.phone}</TableCell>
-                          <TableCell>{reservation.email || '-'}</TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedReservation(reservation);
-                                setShowDateReservationsDialog(false);
-                                setShowDeleteDialog(true);
-                              }}
-                            >
-                              삭제
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <div className="mt-4 flex justify-between">
-            <div>
-              {selectedDate && (
-                <div className="flex space-x-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+            {/* 오전반 섹션 */}
+            <div className="border rounded-md p-4">
+              <div className="flex items-center mb-4">
+                <h3 className="text-lg font-semibold">오전반</h3>
+                <Badge className="ml-2" variant="outline">09:00 - 13:00</Badge>
+                
+                {selectedDate && (
                   <Button 
                     variant="outline" 
+                    size="sm"
+                    className="ml-auto"
                     onClick={() => {
                       setSelectedTimeSlot('morning');
                       handleDateSelection(selectedDate, 'morning');
                       setShowDateReservationsDialog(false);
                     }}
                   >
-                    오전반 예약 설정
+                    예약 설정
                   </Button>
+                )}
+              </div>
+              
+              {(() => {
+                const morningReservations = selectedDateReservations.filter(r => r.timeSlot === 'morning');
+                const totalMorningParticipants = morningReservations.reduce((sum, res) => sum + res.participants, 0);
+                
+                if (morningReservations.length === 0) {
+                  return (
+                    <div className="text-center py-8 bg-slate-50 rounded-md">
+                      <p className="text-gray-500">신청 정보가 없습니다</p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <>
+                    <div className="mb-2 px-2 py-1 bg-slate-100 rounded flex justify-between">
+                      <span className="font-medium text-sm">총 {morningReservations.length}팀</span>
+                      <span className="font-medium text-sm">{totalMorningParticipants}명</span>
+                    </div>
+                    
+                    <div className="overflow-x-auto max-h-[40vh]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>기관명</TableHead>
+                            <TableHead>담당자</TableHead>
+                            <TableHead>인원</TableHead>
+                            <TableHead>관리</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {morningReservations.map((reservation) => (
+                            <TableRow key={reservation.id}>
+                              <TableCell>{reservation.name}</TableCell>
+                              <TableCell>{reservation.instName}</TableCell>
+                              <TableCell>{reservation.participants}명</TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedReservation(reservation);
+                                    setShowDateReservationsDialog(false);
+                                    setShowDeleteDialog(true);
+                                  }}
+                                >
+                                  삭제
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            
+            {/* 오후반 섹션 */}
+            <div className="border rounded-md p-4">
+              <div className="flex items-center mb-4">
+                <h3 className="text-lg font-semibold">오후반</h3>
+                <Badge className="ml-2" variant="default">14:00 - 18:00</Badge>
+                
+                {selectedDate && (
                   <Button 
                     variant="outline" 
+                    size="sm"
+                    className="ml-auto"
                     onClick={() => {
                       setSelectedTimeSlot('afternoon');
                       handleDateSelection(selectedDate, 'afternoon');
                       setShowDateReservationsDialog(false);
                     }}
                   >
-                    오후반 예약 설정
+                    예약 설정
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
+              
+              {(() => {
+                const afternoonReservations = selectedDateReservations.filter(r => r.timeSlot === 'afternoon');
+                const totalAfternoonParticipants = afternoonReservations.reduce((sum, res) => sum + res.participants, 0);
+                
+                if (afternoonReservations.length === 0) {
+                  return (
+                    <div className="text-center py-8 bg-slate-50 rounded-md">
+                      <p className="text-gray-500">신청 정보가 없습니다</p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <>
+                    <div className="mb-2 px-2 py-1 bg-slate-100 rounded flex justify-between">
+                      <span className="font-medium text-sm">총 {afternoonReservations.length}팀</span>
+                      <span className="font-medium text-sm">{totalAfternoonParticipants}명</span>
+                    </div>
+                    
+                    <div className="overflow-x-auto max-h-[40vh]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>기관명</TableHead>
+                            <TableHead>담당자</TableHead>
+                            <TableHead>인원</TableHead>
+                            <TableHead>관리</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {afternoonReservations.map((reservation) => (
+                            <TableRow key={reservation.id}>
+                              <TableCell>{reservation.name}</TableCell>
+                              <TableCell>{reservation.instName}</TableCell>
+                              <TableCell>{reservation.participants}명</TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedReservation(reservation);
+                                    setShowDateReservationsDialog(false);
+                                    setShowDeleteDialog(true);
+                                  }}
+                                >
+                                  삭제
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
+          </div>
+          
+          <div className="mt-4 flex justify-end">
             <Button onClick={() => setShowDateReservationsDialog(false)}>
               닫기
             </Button>
