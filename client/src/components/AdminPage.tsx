@@ -53,7 +53,7 @@ const AdminPage = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex flex-col gap-6">
         {/* 캘린더 섹션 */}
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <h2 className="text-lg font-semibold mb-4">예약 캘린더</h2>

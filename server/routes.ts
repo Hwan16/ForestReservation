@@ -287,6 +287,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: data.phone,
         email: null, // 이메일 필드 제거
         participants: data.participants,
+        desiredActivity: data.desiredActivity,
+        parentParticipation: data.parentParticipation,
         notes: data.notes || null,
         createdAt: new Date().toISOString(),
       });

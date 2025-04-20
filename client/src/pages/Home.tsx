@@ -8,6 +8,7 @@ import ReservationForm from "@/components/ReservationForm";
 import Confirmation from "@/components/Confirmation";
 import { Step, TimeSlot, Reservation } from "../types";
 import { isAuthenticated } from "@/utils/auth";
+import { useLocation } from "wouter";
 
 const Home = () => {
   const [currentStep, setCurrentStep] = useState<Step>("date");
@@ -15,12 +16,18 @@ const Home = () => {
   const [selectedTime, setSelectedTime] = useState<TimeSlot | null>(null);
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [_, setLocation] = useLocation();
   
-  // 관리자 인증 여부 확인
+  // 관리자 인증 여부 확인 및 관리자 페이지로 리디렉션
   useEffect(() => {
     const checkAdminStatus = () => {
       const adminStatus = isAuthenticated();
       setIsAdmin(adminStatus);
+      
+      // 관리자로 로그인된 상태라면 관리자 페이지로 리디렉션
+      if (adminStatus) {
+        setLocation('/admin');
+      }
     };
     
     // 초기 확인
@@ -30,7 +37,7 @@ const Home = () => {
     const intervalId = setInterval(checkAdminStatus, 1000);
     
     return () => clearInterval(intervalId);
-  }, []);
+  }, [setLocation]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
