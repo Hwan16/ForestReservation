@@ -19,30 +19,30 @@ const Calendar = ({ onSelectDate, selectedDate, isAdminMode = false, reservation
   // 관리자 모드일 경우 더 자주 갱신
   const { data: availabilities, isLoading, refetch: refetchAvailabilities } = useQuery<DayAvailability[]>({
     queryKey: [`/api/availability/${format(currentMonth, 'yyyy-MM')}`],
-    // refetchInterval: 1000, // 이 부분 주석 처리
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchInterval: 1000, // 1초마다 자동 갱신 (빠른 업데이트를 위해)
+    refetchOnMount: true, // 컴포넌트가 마운트될 때마다 다시 가져오기
+    refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 다시 가져오기
   });
   
   // 예약 데이터 가져오기 (인증 우회용 테스트 API 사용)
   const { data: fetchedReservations = [], refetch: refetchReservations } = useQuery<Reservation[]>({
     queryKey: ['/api/reservations/test'],
-    enabled: isAdminMode,
-    // refetchInterval: 1000, // 이 부분 주석 처리
+    enabled: isAdminMode, // 관리자 모드일 때만 로드
+    refetchInterval: 1000, // 1초마다 자동 갱신
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
   
   // 예약 정보 주기적 갱신
-  // useEffect(() => {
-  //   if (isAdminMode) {
-  //     const intervalId = setInterval(() => {
-  //       refetchAvailabilities();
-  //     }, 1000);
-  //     
-  //     return () => clearInterval(intervalId);
-  //   }
-  // }, [isAdminMode, refetchAvailabilities]);
+  useEffect(() => {
+    if (isAdminMode) {
+      const intervalId = setInterval(() => {
+        refetchAvailabilities();
+      }, 1000); // 1초로 단축
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [isAdminMode, refetchAvailabilities]);
 
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   

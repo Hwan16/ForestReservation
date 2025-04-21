@@ -30,8 +30,8 @@ const AdminLoginModal = ({ isOpen, onClose }: AdminLoginModalProps) => {
       
       // 쿠키에 인증 상태 저장
       const expiryDate = new Date();
-      expiryDate.setTime(expiryDate.getTime() + 30 * 60 * 1000); // 30분
-      document.cookie = `adminAuth=true; expires=${expiryDate.toUTCString()}; path=/`;
+      expiryDate.setTime(expiryDate.getTime() + 24 * 60 * 60 * 1000); // 24시간으로 변경
+      document.cookie = `adminAuth=1005; expires=${expiryDate.toUTCString()}; path=/`;
       
       toast({
         title: "로그인 성공",

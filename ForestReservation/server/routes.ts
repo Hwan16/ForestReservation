@@ -33,15 +33,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper middleware to check if user is authenticated
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
-    // 모든 요청 허용하도록 수정
-    return next();
-    
-    /*
     if (req.session && req.session.userId) {
       return next();
     }
     return res.status(401).json({ message: "인증이 필요합니다." });
-    */
   };
 
   // Initialize with default admin user if not exists
@@ -204,8 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // 관리자용 가용성 업데이트 API
-  // 관리자 페이지에서만 접근 가능하므로 인증 미들웨어 제거
-  app.patch("/api/availability/update", async (req, res) => {
+  app.patch("/api/availability/update", isAuthenticated, async (req, res) => {
     try {
       const { date, timeSlot, capacity, available } = req.body;
       
@@ -227,12 +221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 현재 가용성 확인
       const currentAvailability = await storage.getAvailabilityByDate(date);
+      const currentSlot = currentAvailability?.status[timeSlot];
       
-      // 가용성 데이터가 없거나 해당 시간대 데이터가 없는 경우
-      const key = `${date}_${timeSlot}`;
-      const slot = await storage.getAvailabilityByTimeSlot(date, timeSlot);
-      
-      if (!slot) {
+      if (!currentSlot) {
         // 가용성 데이터가 없으면 새로 생성
         await storage.createAvailability({
           date,
@@ -242,35 +233,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // 기존 가용성 업데이트
-        try {
-          await storage.updateAvailability(date, timeSlot, (current) => {
-            console.log('현재 가용성:', current);
-            return {
-              ...current,
-              capacity,
-              // Availability 타입에는 available 속성이 없으므로 이 속성을 직접 설정하지 않음
-              // DB 스키마의 가용성 데이터 형태에 맞추기
-            };
-          });
-          
-          // 업데이트된 가용성 반환 전에 서비스 중단 설정을 직접 업데이트
-          // 이 작업은 getAvailabilityByDate가 반환하는 구조에 영향을 줍니다.
-          if (!available) {
-            console.log(`${date} ${timeSlot} 시간대 예약 마감 처리`);
-          } else {
-            console.log(`${date} ${timeSlot} 시간대 예약 오픈 처리`);
-          }
-        } catch (error) {
-          console.error('updateAvailability 오류:', error);
-          throw error;
-        }
+        await storage.updateAvailability(date, timeSlot, (current) => ({
+          ...current,
+          capacity,
+          // 현재 예약된 수가 새 용량보다 많으면 가용성을 false로 설정
+          available: available && current.reserved <= capacity
+        }));
       }
       
       // 업데이트된 가용성 반환
       const updatedAvailability = await storage.getAvailabilityByDate(date);
       return res.status(200).json(updatedAvailability);
     } catch (error) {
-      console.error('가용성 업데이트 오류:', error);
       return res.status(500).json({ message: "가용성 업데이트 중 오류가 발생했습니다." });
     }
   });
@@ -336,17 +310,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 관리자 인증 미들웨어
   const isAdmin = (req: Request, res: Response, next: Function) => {
-    // 모든 요청 허용 - 인증 체크 비활성화
-    return next();
-    
-    // 아래 인증 코드 비활성화
-    /*
     const adminPassword = req.cookies.adminAuth;
     if (adminPassword === "1005") {
       return next();
     }
     return res.status(401).json({ message: "관리자 인증이 필요합니다." });
-    */
   };
 
   // 관리자 로그인 라우트

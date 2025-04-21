@@ -1,34 +1,45 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
-interface AdminLoginProps {
-  onClose: () => void;
-  onSuccess: () => void;
+interface AdminLoginModalProps {
   isOpen: boolean;
+  onClose: () => void;
 }
 
-const AdminLogin = ({ onClose, onSuccess, isOpen }: AdminLoginProps) => {
+const AdminLoginModal = ({ isOpen, onClose }: AdminLoginModalProps) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const { toast } = useToast();
+  const [_, setLocation] = useLocation();
 
   const handleLogin = () => {
     // 비밀번호 확인 (비밀번호: "1005")
     if (password === "1005") {
       setError(false);
       
-      // 관리자 쿠키 설정 - 서버 API 미들웨어와 일치하는 값으로 설정
-      document.cookie = "adminAuth=1005; path=/; max-age=86400"; // 24시간 유효
+      // 쿠키에 인증 상태 저장
+      const expiryDate = new Date();
+      expiryDate.setTime(expiryDate.getTime() + 30 * 60 * 1000); // 30분
+      document.cookie = `adminAuth=true; expires=${expiryDate.toUTCString()}; path=/`;
       
       toast({
         title: "로그인 성공",
         description: "관리자 페이지로 이동합니다.",
       });
-      onSuccess();
+      
+      onClose();
+      setLocation("/admin");
     } else {
       setError(true);
       toast({
@@ -57,17 +68,18 @@ const AdminLogin = ({ onClose, onSuccess, isOpen }: AdminLoginProps) => {
               id="password"
               type="password"
               placeholder="관리자 비밀번호 입력"
-              className={`col-span-3 ${error ? 'border-red-500' : ''}`}
+              className={`col-span-3 ${error ? "border-red-500" : ""}`}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
                 setError(false);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   handleLogin();
                 }
               }}
+              autoFocus
             />
           </div>
           {error && (
@@ -87,4 +99,4 @@ const AdminLogin = ({ onClose, onSuccess, isOpen }: AdminLoginProps) => {
   );
 };
 
-export default AdminLogin;
+export default AdminLoginModal;

@@ -20,10 +20,6 @@ const AdminLogin = ({ onClose, onSuccess, isOpen }: AdminLoginProps) => {
     // 비밀번호 확인 (비밀번호: "1005")
     if (password === "1005") {
       setError(false);
-      
-      // 관리자 쿠키 설정 - 서버 API 미들웨어와 일치하는 값으로 설정
-      document.cookie = "adminAuth=1005; path=/; max-age=86400"; // 24시간 유효
-      
       toast({
         title: "로그인 성공",
         description: "관리자 페이지로 이동합니다.",

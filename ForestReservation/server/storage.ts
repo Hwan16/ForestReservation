@@ -39,7 +39,6 @@ export interface IStorage {
   getAllAvailabilities(): Promise<Availability[]>;
   getAvailabilitiesByMonth(yearMonth: string): Promise<DayAvailability[]>;
   getAvailabilityByDate(date: string): Promise<DayAvailability | undefined>;
-  getAvailabilityByTimeSlot(date: string, timeSlot: string): Promise<Availability | undefined>;
   updateAvailability(
     date: string, 
     timeSlot: string, 
@@ -212,12 +211,6 @@ export class MemStorage implements IStorage {
         },
       },
     };
-  }
-
-  // 날짜와 시간대로 가용성 데이터 조회
-  async getAvailabilityByTimeSlot(date: string, timeSlot: string): Promise<Availability | undefined> {
-    const key = `${date}_${timeSlot}`;
-    return this.availabilities.get(key);
   }
 
   async updateAvailability(
