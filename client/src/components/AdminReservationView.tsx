@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { format } from 'date-fns';
+import { format, addDays, isEqual } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Reservation } from '../types';
-import { Loader2, Edit, Trash2, Info, Lock, Unlock, AlertCircle, Ban } from 'lucide-react';
+import { Loader2, Edit, Trash2, Info, Lock, Unlock, AlertCircle, Ban, Save, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -18,6 +18,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import { Input } from './ui/input';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 interface AdminReservationViewProps {
   selectedDate: Date;
@@ -60,7 +68,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus | null>(null);
   const [dialogAction, setDialogAction] = useState<{
     open: boolean;
-    timeSlot?: 'morning' | 'afternoon' | 'all' | 'future';
+    timeSlot?: 'morning' | 'afternoon' | 'all';
     action: 'open' | 'close';
   }>({ open: false, action: 'close' });
   
@@ -69,6 +77,10 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // 수정 중인 예약 정보 상태 관리
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Reservation>>({});
 
   // 해당 날짜의 예약 정보 가져오기
   const { data: allReservations, isLoading: isLoadingReservations, refetch: refetchReservations } = useQuery<Reservation[]>({
@@ -90,10 +102,15 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       return rawData; // 이미 올바른 형식일 경우
     },
     select: (data) => data || [],
+    refetchInterval: 1000, // 1초마다 자동 갱신
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    staleTime: 0, // 항상 최신 데이터 조회
   });
 
   // 현재 선택된 날짜의 예약만 필터링
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const yearMonth = format(selectedDate, 'yyyy-MM');
   
   // 날짜별 예약 가능 여부 가져오기
   const { data: availability, isLoading: isLoadingAvailability, refetch: refetchAvailability } = useQuery({
@@ -105,7 +122,11 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       }
       return response.json();
     },
-    enabled: !!selectedDateStr
+    enabled: !!selectedDateStr,
+    refetchInterval: 1000, // 1초마다 자동 갱신
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    staleTime: 0 // 항상 최신 데이터 조회
   });
 
   // 가용성 상태 업데이트
@@ -196,8 +217,92 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     }
   });
 
+  // 예약 정보 수정 뮤테이션
+  const updateReservationMutation = useMutation({
+    mutationFn: async (updatedReservation: Partial<Reservation>) => {
+      // API 호출 디버깅 로그
+      console.log("[디버깅] API 호출 시작, URL:", `/api/reservations/${updatedReservation.reservationId || updatedReservation.id}`);
+      console.log("[디버깅] 전송 데이터:", JSON.stringify(updatedReservation, null, 2));
+      
+      // 실제 API 호출
+      const response = await fetch(`/api/reservations/${updatedReservation.reservationId || updatedReservation.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedReservation),
+        credentials: 'same-origin'
+      });
+      
+      // 응답 본문 텍스트로 먼저 읽기
+      const textResponse = await response.text();
+      console.log("[디버깅] API 응답 상태:", response.status, response.statusText);
+      console.log("[디버깅] API 응답 텍스트:", textResponse.substring(0, 200) + (textResponse.length > 200 ? '...' : ''));
+      
+      // 응답이 성공적이지 않으면 오류 메시지 생성
+      if (!response.ok) {
+        // HTML 응답인지 확인 (<!DOCTYPE 또는 <html로 시작하는지)
+        if (textResponse.trim().startsWith('<!DOCTYPE') || textResponse.trim().startsWith('<html')) {
+          console.error('서버에서 HTML 응답을 반환했습니다:', textResponse.substring(0, 150) + '...');
+          throw new Error('서버 오류: API 엔드포인트가 HTML을 반환했습니다. 서버 로그를 확인하세요.');
+        }
+        
+        // JSON 응답이면 파싱 시도
+        try {
+          const errorData = JSON.parse(textResponse);
+          throw new Error(errorData.message || '예약 정보 업데이트에 실패했습니다.');
+        } catch (e) {
+          // JSON 파싱 실패 시 기본 오류 메시지 표시
+          throw new Error('서버 응답을 처리할 수 없습니다: ' + textResponse.substring(0, 50));
+        }
+      }
+      
+      // 성공 응답인 경우 JSON 파싱 시도
+      try {
+        return JSON.parse(textResponse);
+      } catch (e) {
+        console.error('성공 응답 파싱 오류:', e);
+        console.log('응답 텍스트:', textResponse.substring(0, 150) + '...');
+        // 성공했지만 JSON이 아닌 경우 기본 성공 응답 제공
+        return {
+          success: true,
+          message: '업데이트되었습니다'
+        };
+      }
+    },
+    onSuccess: (data) => {
+      // 수정 완료 후 쿼리 무효화 및 상태 초기화
+      console.log("[디버깅] 수정 성공 응답 데이터:", data);
+      
+      // 명시적으로 쿼리 무효화 및 리패치
+      queryClient.invalidateQueries({ queryKey: ['reservations', 'all'] });
+      // 갱신된 데이터 즉시 반영을 위해 강제 리패치
+      setTimeout(() => {
+        refetchReservations();
+      }, 500);
+      
+      toast({
+        title: '수정 완료',
+        description: '예약 정보가 성공적으로 수정되었습니다.',
+      });
+      
+      // 수정 모드 종료
+      setEditingReservation(null);
+      setEditFormData({});
+    },
+    onError: (error: any) => {
+      console.error('예약 수정 오류:', error);
+      
+      toast({
+        title: '수정 실패',
+        description: error.message || '예약 정보 수정 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // 마감/마감 취소 처리 함수
-  const handleAvailabilityToggle = (timeSlot: 'morning' | 'afternoon' | 'all' | 'future') => {
+  const handleAvailabilityToggle = (timeSlot: 'morning' | 'afternoon' | 'all') => {
     if (timeSlot === 'all') {
       // 전체 마감/마감 취소 처리
       setDialogAction({
@@ -208,11 +313,14 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     } else {
       // 개별 오전/오후 마감 처리
       if (!availabilityStatus) return;
-      const isCurrentlyAvailable = availabilityStatus[timeSlot].available;
+      
+      // timeSlot이 'morning' 또는 'afternoon'인 경우에만 처리
+      const currentTimeSlot = timeSlot as 'morning' | 'afternoon';
+      const isCurrentlyAvailable = availabilityStatus[currentTimeSlot].available;
       
       setDialogAction({
         open: true,
-        timeSlot,
+        timeSlot: currentTimeSlot,
         action: isCurrentlyAvailable ? 'close' : 'open'
       });
     }
@@ -231,9 +339,6 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       setTimeout(() => {
         updateAvailabilityMutation.mutate({ timeSlot: 'afternoon', available: newAvailability });
       }, 300);
-    } else if (dialogAction.timeSlot === 'future') {
-      // 다음 날부터 전체 마감 처리
-      handleCloseAllFutureDates();
     } else {
       // 개별 마감/마감 취소
       updateAvailabilityMutation.mutate({
@@ -246,56 +351,6 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     setDialogAction({ ...dialogAction, open: false });
   };
   
-  // 다음 날부터 전체 마감 함수
-  const handleCloseAllFutureDates = async () => {
-    try {
-      // 선택 날짜를 기준으로 다음 날부터 마감
-      const nextDay = new Date(selectedDate);
-      nextDay.setDate(selectedDate.getDate() + 1);
-      
-      const endDate = new Date(selectedDate);
-      endDate.setMonth(endDate.getMonth() + 3); // 3개월 기간으로 설정
-      
-      const startDateStr = nextDay.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-      
-      const response = await fetch('/api/availability/close-all', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          startDate: startDateStr,
-          endDate: endDateStr
-        }),
-        credentials: 'same-origin'
-      });
-      
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.message || '예약 마감 처리에 실패했습니다.');
-      }
-      
-      // 성공 시 알림
-      toast({
-        title: '전체 마감 처리 성공',
-        description: `${responseData.updatedDates?.length || 0}개 날짜의 예약이 마감되었습니다.`,
-      });
-      
-      // 현재 날짜 데이터 새로고침
-      refetchAvailability();
-      
-    } catch (error: any) {
-      console.error('전체 마감 처리 오류:', error);
-      toast({
-        title: '마감 처리 실패',
-        description: error.message || '전체 예약 마감 중 오류가 발생했습니다.',
-        variant: 'destructive',
-      });
-    }
-  };
-  
   // 확인 다이얼로그 메시지 업데이트
   const getDialogTitle = () => {
     if (!dialogAction.timeSlot) return "";
@@ -304,11 +359,6 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       return dialogAction.action === 'close' 
         ? `${format(selectedDate, 'yyyy-MM-dd')} 전체 예약을 마감하시겠습니까?`
         : `${format(selectedDate, 'yyyy-MM-dd')} 전체 예약을 오픈하시겠습니까?`;
-    } else if (dialogAction.timeSlot === 'future') {
-      // 다음 날부터 전체 마감 메시지
-      const nextDay = new Date(selectedDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      return `${format(nextDay, 'yyyy-MM-dd')}부터 3개월간 모든 예약을 마감하시겠습니까?`;
     } else {
       const timeSlotText = dialogAction.timeSlot === 'morning' ? '오전' : '오후';
       return dialogAction.action === 'close'
@@ -357,7 +407,152 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     return participation === 'yes' ? '예' : '아니오 (선생님 및 어린이만 참여)';
   };
 
-  // 예약 정보 테이블 렌더링
+  // 수정 모드 시작 함수
+  const handleEditStart = (reservation: Reservation) => {
+    setEditingReservation(reservation);
+    setEditFormData({...reservation});
+  };
+  
+  // 수정 모드 취소 함수
+  const handleEditCancel = () => {
+    setEditingReservation(null);
+    setEditFormData({});
+  };
+  
+  // 수정 데이터 저장 함수
+  const handleEditSave = () => {
+    if (!editingReservation || !editFormData) return;
+    
+    // 필수 필드 체크
+    if (!editFormData.name || !editFormData.instName || !editFormData.phone) {
+      toast({
+        title: '입력 오류',
+        description: '모든 필수 정보를 입력해주세요.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // 숫자 타입 확인 (participants)
+    if (typeof editFormData.participants === 'string') {
+      editFormData.participants = parseInt(editFormData.participants);
+    }
+    
+    // 원본 데이터와 합치기
+    const updatedReservation = {
+      ...editingReservation,
+      ...editFormData,
+      // reservationId를 명시적으로 포함시킴
+      reservationId: editingReservation.reservationId
+    };
+    
+    console.log("[디버깅] 수정 요청할 데이터:", updatedReservation);
+    console.log("[디버깅] 기존 예약 데이터:", editingReservation);
+    console.log("[디버깅] 수정 폼 데이터:", editFormData);
+    
+    // 뮤테이션 호출
+    updateReservationMutation.mutate(updatedReservation);
+  };
+  
+  // 폼 입력값 변경 핸들러
+  const handleInputChange = (field: string, value: any) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  // 수정 폼 렌더링 함수
+  const renderEditForm = (reservation: Reservation) => {
+    return (
+      <TableRow key={reservation.id || reservation.reservationId} className="bg-blue-50">
+        <TableCell>
+          <Input 
+            value={editFormData.instName || ''} 
+            onChange={(e) => handleInputChange('instName', e.target.value)} 
+            className="w-full" 
+            placeholder="선생님 이름"
+          />
+        </TableCell>
+        <TableCell>
+          <Input 
+            value={editFormData.name || ''} 
+            onChange={(e) => handleInputChange('name', e.target.value)} 
+            className="w-full" 
+            placeholder="어린이집/학교명"
+          />
+        </TableCell>
+        <TableCell>
+          <Input 
+            value={editFormData.phone || ''} 
+            onChange={(e) => handleInputChange('phone', e.target.value)} 
+            className="w-full" 
+            placeholder="연락처"
+          />
+        </TableCell>
+        <TableCell className="text-center">
+          <Input 
+            type="number" 
+            value={editFormData.participants || 0} 
+            onChange={(e) => handleInputChange('participants', parseInt(e.target.value) || 0)} 
+            className="w-20 mx-auto text-center" 
+            min={1}
+            max={100}
+          />
+        </TableCell>
+        <TableCell>
+          <Select 
+            value={editFormData.desiredActivity || 'all'} 
+            onValueChange={(value) => handleInputChange('desiredActivity', value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="희망 활동" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">모두(숲 놀이, 체험 활동)</SelectItem>
+              <SelectItem value="experience">체험 활동만</SelectItem>
+            </SelectContent>
+          </Select>
+        </TableCell>
+        <TableCell>
+          <Select 
+            value={editFormData.parentParticipation || 'no'} 
+            onValueChange={(value) => handleInputChange('parentParticipation', value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="학부모 참여 여부" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="no">아니오 (선생님 및 어린이만 참여)</SelectItem>
+              <SelectItem value="yes">예</SelectItem>
+            </SelectContent>
+          </Select>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 bg-green-50 text-green-600 hover:text-green-700 hover:bg-green-100"
+              onClick={handleEditSave}
+            >
+              <Save className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 bg-gray-50 text-gray-600 hover:text-gray-700 hover:bg-gray-100"
+              onClick={handleEditCancel}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+  
+  // 예약 정보 테이블 렌더링 수정
   const renderReservationTable = (reservations: Reservation[]) => {
     if (reservations.length === 0) {
       return (
@@ -382,26 +577,46 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
           </TableRow>
         </TableHeader>
         <TableBody>
-            {reservations.map((reservation) => (
-            <TableRow key={reservation.id || reservation.reservationId}>
-              <TableCell className="font-medium">{reservation.instName}</TableCell>
-              <TableCell>{reservation.name}</TableCell>
-              <TableCell>{reservation.phone}</TableCell>
-              <TableCell className="text-center">{reservation.participants}명</TableCell>
-              <TableCell>{getDesiredActivityText(reservation.desiredActivity)}</TableCell>
-              <TableCell>{getParentParticipationText(reservation.parentParticipation)}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {reservations.map((reservation) => {
+            // 현재 수정 중인 예약인지 확인
+            if (editingReservation && 
+                (editingReservation.id === reservation.id || 
+                 editingReservation.reservationId === reservation.reservationId)) {
+              return renderEditForm(reservation);
+            }
+            
+            // 일반 예약 행 렌더링
+            return (
+              <TableRow key={reservation.id || reservation.reservationId}>
+                <TableCell className="font-medium">{reservation.instName}</TableCell>
+                <TableCell>{reservation.name}</TableCell>
+                <TableCell>{reservation.phone}</TableCell>
+                <TableCell className="text-center">{reservation.participants}명</TableCell>
+                <TableCell>{getDesiredActivityText(reservation.desiredActivity)}</TableCell>
+                <TableCell>{getParentParticipationText(reservation.parentParticipation)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEditStart(reservation)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-8 w-8 text-red-500 hover:text-red-700"
+                      onClick={() => handleCancelReservation(reservation)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     );
@@ -420,6 +635,137 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const isAfternoonAvailable = availabilityStatus?.afternoon.available;
   const isAnyAvailable = isMorningAvailable || isAfternoonAvailable;
 
+  // 예약 취소 처리 함수
+  const handleCancelReservation = async (reservation: Reservation) => {
+    // 로그 추가 - 예약 정보 확인
+    console.log('삭제할 예약 정보:', {
+      id: reservation.id,
+      reservationId: reservation.reservationId,
+      name: reservation.name,
+      timeSlot: reservation.timeSlot,
+      date: reservation.date
+    });
+    
+    const confirmCancel = window.confirm(`[${reservation.name}] 예약을 삭제하시겠습니까?`);
+    if (confirmCancel) {
+      try {
+        // reservationId가 우선, 없으면 id 사용
+        const deleteId = reservation.reservationId || reservation.id;
+        
+        if (!deleteId) {
+          throw new Error('삭제할 예약의 ID가 존재하지 않습니다.');
+        }
+        
+        console.log(`예약 삭제 요청 ID: ${deleteId}`);
+        
+        const response = await fetch(`/api/reservations/${deleteId}`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+
+        // 응답 로그 추가
+        console.log('삭제 응답 상태:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('삭제 실패 응답:', errorText);
+          throw new Error(`예약 삭제에 실패했습니다. 상태 코드: ${response.status}`);
+        }
+
+        toast({
+          title: '삭제 완료',
+          description: `[${reservation.name}] 예약이 성공적으로 삭제되었습니다.`,
+        });
+        
+        // 데이터 무효화 및 재조회
+        queryClient.invalidateQueries({ queryKey: ['reservations', 'all'] });
+        queryClient.invalidateQueries({ queryKey: ['availability', selectedDateStr] });
+        
+        // 캘린더 데이터도 무효화하여 색상 변경이 즉시 반영되도록 함
+        queryClient.invalidateQueries({ queryKey: ['availability', yearMonth] });
+        queryClient.invalidateQueries({ queryKey: ['reservations', yearMonth] });
+      } catch (error) {
+        console.error('예약 삭제 에러:', error);
+        toast({
+          title: '삭제 실패',
+          description: error instanceof Error ? error.message : '예약 삭제 중 오류가 발생했습니다.',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  // 날짜 예약 가능 여부 관리 함수들
+  const handleToggleAvailability = async (timeSlot: 'morning' | 'afternoon') => {
+    if (!availability) {
+      alert('가용성 데이터를 불러올 수 없습니다.');
+      return;
+    }
+
+    const currentValue = timeSlot === 'morning' ? availability.morning.available : availability.afternoon.available;
+    
+    try {
+      const response = await fetch(`/api/availability/date/${selectedDateStr}/${timeSlot}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ available: !currentValue }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`${timeSlot} 예약 가능 여부 변경에 실패했습니다.`);
+      }
+
+      // 데이터 무효화 및 재조회
+      queryClient.invalidateQueries({ queryKey: ['availability', selectedDateStr] });
+      
+      // 캘린더 데이터도 무효화하여 색상 변경이 즉시 반영되도록 함
+      queryClient.invalidateQueries({ queryKey: ['availability', yearMonth] });
+      queryClient.invalidateQueries({ queryKey: ['reservations', yearMonth] });
+    } catch (error) {
+      console.error('예약 가능 여부 변경 에러:', error);
+      alert('예약 가능 여부 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 전체 날짜 열기/닫기 함수
+  const handleCloseAllSessions = async () => {
+    if (!availability) {
+      alert('가용성 데이터를 불러올 수 없습니다.');
+      return;
+    }
+
+    // 현재 둘 다 닫혀있는지 확인
+    const allClosed = !availability.morning.available && !availability.afternoon.available;
+    // 모두 열기 또는 닫기 선택
+    const shouldOpen = allClosed;
+
+    try {
+      const response = await fetch(`/api/availability/date/${selectedDateStr}/all`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ available: shouldOpen }),
+      });
+
+      if (!response.ok) {
+        throw new Error('모든 세션 상태 변경에 실패했습니다.');
+      }
+
+      // 데이터 무효화 및 재조회 
+      queryClient.invalidateQueries({ queryKey: ['availability', selectedDateStr] });
+      
+      // 캘린더 데이터도 무효화하여 색상 변경이 즉시 반영되도록 함
+      queryClient.invalidateQueries({ queryKey: ['availability', yearMonth] });
+      queryClient.invalidateQueries({ queryKey: ['reservations', yearMonth] });
+    } catch (error) {
+      console.error('세션 상태 변경 에러:', error);
+      alert('세션 상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 전체 날짜 마감 관리 버튼 */}
@@ -435,21 +781,6 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                size="default"
-                className="bg-red-600 hover:bg-red-700"
-                onClick={() => {
-                  setDialogAction({
-                    open: true,
-                    timeSlot: 'future',
-                    action: 'close'
-                  });
-                }}
-              >
-                <Ban className="h-4 w-4 mr-2" />
-                다음 날부터 전체 마감
-              </Button>
               <Button
                 variant={isAnyAvailable ? "outline" : "secondary"}
                 size="default"
