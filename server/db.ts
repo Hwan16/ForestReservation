@@ -42,9 +42,24 @@ const initDatabase = () => {
       date TEXT NOT NULL,
       time_slot TEXT NOT NULL,
       capacity INTEGER NOT NULL DEFAULT 30,
-      reserved INTEGER NOT NULL DEFAULT 0
+      reserved INTEGER NOT NULL DEFAULT 0,
+      available INTEGER DEFAULT 1
     );
   `);
+  
+  // available 필드가 없는 경우 추가하는 마이그레이션
+  try {
+    // 필드 존재 여부 확인
+    const checkColumn = sqlite.prepare("PRAGMA table_info(availability)").all();
+    const hasAvailableColumn = checkColumn.some((col: any) => col.name === 'available');
+    
+    if (!hasAvailableColumn) {
+      console.log("availability 테이블에 available 필드 추가");
+      sqlite.exec("ALTER TABLE availability ADD COLUMN available INTEGER DEFAULT 1");
+    }
+  } catch (error) {
+    console.error("데이터베이스 마이그레이션 중 오류 발생:", error);
+  }
 };
 
 initDatabase();

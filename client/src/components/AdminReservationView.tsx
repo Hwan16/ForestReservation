@@ -45,8 +45,8 @@ const normalizeReservation = (raw: RawReservation): Reservation => {
     reservationId: raw.reservation_id,
     date: raw.date,
     timeSlot: raw.time_slot as any,
-    name: raw.name,
-    instName: raw.inst_name,
+    name: raw.inst_name,     // 서버의 inst_name -> 클라이언트의 name (어린이집/학교명)
+    instName: raw.name,      // 서버의 name -> 클라이언트의 instName (선생님 이름)
     phone: raw.phone,
     participants: raw.participants,
     desiredActivity: raw.desired_activity as any,
@@ -60,7 +60,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus | null>(null);
   const [dialogAction, setDialogAction] = useState<{
     open: boolean;
-    timeSlot?: 'morning' | 'afternoon' | 'all';
+    timeSlot?: 'morning' | 'afternoon' | 'all' | 'future';
     action: 'open' | 'close';
   }>({ open: false, action: 'close' });
   
@@ -197,7 +197,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   });
 
   // 마감/마감 취소 처리 함수
-  const handleAvailabilityToggle = (timeSlot: 'morning' | 'afternoon' | 'all') => {
+  const handleAvailabilityToggle = (timeSlot: 'morning' | 'afternoon' | 'all' | 'future') => {
     if (timeSlot === 'all') {
       // 전체 마감/마감 취소 처리
       setDialogAction({
@@ -231,6 +231,9 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       setTimeout(() => {
         updateAvailabilityMutation.mutate({ timeSlot: 'afternoon', available: newAvailability });
       }, 300);
+    } else if (dialogAction.timeSlot === 'future') {
+      // 다음 날부터 전체 마감 처리
+      handleCloseAllFutureDates();
     } else {
       // 개별 마감/마감 취소
       updateAvailabilityMutation.mutate({
@@ -241,6 +244,77 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     
     // 다이얼로그 닫기
     setDialogAction({ ...dialogAction, open: false });
+  };
+  
+  // 다음 날부터 전체 마감 함수
+  const handleCloseAllFutureDates = async () => {
+    try {
+      // 선택 날짜를 기준으로 다음 날부터 마감
+      const nextDay = new Date(selectedDate);
+      nextDay.setDate(selectedDate.getDate() + 1);
+      
+      const endDate = new Date(selectedDate);
+      endDate.setMonth(endDate.getMonth() + 3); // 3개월 기간으로 설정
+      
+      const startDateStr = nextDay.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const response = await fetch('/api/availability/close-all', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate: startDateStr,
+          endDate: endDateStr
+        }),
+        credentials: 'same-origin'
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || '예약 마감 처리에 실패했습니다.');
+      }
+      
+      // 성공 시 알림
+      toast({
+        title: '전체 마감 처리 성공',
+        description: `${responseData.updatedDates?.length || 0}개 날짜의 예약이 마감되었습니다.`,
+      });
+      
+      // 현재 날짜 데이터 새로고침
+      refetchAvailability();
+      
+    } catch (error: any) {
+      console.error('전체 마감 처리 오류:', error);
+      toast({
+        title: '마감 처리 실패',
+        description: error.message || '전체 예약 마감 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // 확인 다이얼로그 메시지 업데이트
+  const getDialogTitle = () => {
+    if (!dialogAction.timeSlot) return "";
+    
+    if (dialogAction.timeSlot === 'all') {
+      return dialogAction.action === 'close' 
+        ? `${format(selectedDate, 'yyyy-MM-dd')} 전체 예약을 마감하시겠습니까?`
+        : `${format(selectedDate, 'yyyy-MM-dd')} 전체 예약을 오픈하시겠습니까?`;
+    } else if (dialogAction.timeSlot === 'future') {
+      // 다음 날부터 전체 마감 메시지
+      const nextDay = new Date(selectedDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return `${format(nextDay, 'yyyy-MM-dd')}부터 3개월간 모든 예약을 마감하시겠습니까?`;
+    } else {
+      const timeSlotText = dialogAction.timeSlot === 'morning' ? '오전' : '오후';
+      return dialogAction.action === 'close'
+        ? `${format(selectedDate, 'yyyy-MM-dd')} ${timeSlotText}반 예약을 마감하시겠습니까?`
+        : `${format(selectedDate, 'yyyy-MM-dd')} ${timeSlotText}반 예약을 오픈하시겠습니까?`;
+    }
   };
 
   const reservations = allReservations?.filter(res => res.date === selectedDateStr) || [];
@@ -298,13 +372,13 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>어린이집/학교명</TableHead>
-            <TableHead>선생님 이름</TableHead>
-            <TableHead>연락처</TableHead>
-            <TableHead className="text-center">인원수</TableHead>
-            <TableHead>희망 활동</TableHead>
-            <TableHead>학부모 참여</TableHead>
-            <TableHead className="text-right">관리</TableHead>
+            <TableHead className="w-[15%]">선생님 이름</TableHead>
+            <TableHead className="w-[15%]">어린이집/학교명</TableHead>
+            <TableHead className="w-[15%]">연락처</TableHead>
+            <TableHead className="w-[10%] text-center">인원수</TableHead>
+            <TableHead className="w-[15%]">희망 활동</TableHead>
+            <TableHead className="w-[20%]">학부모 참여</TableHead>
+            <TableHead className="w-[10%] text-right">관리</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -346,22 +420,6 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const isAfternoonAvailable = availabilityStatus?.afternoon.available;
   const isAnyAvailable = isMorningAvailable || isAfternoonAvailable;
 
-  // 확인 다이얼로그 메시지
-  const getDialogTitle = () => {
-    if (!dialogAction.timeSlot) return "";
-    
-    if (dialogAction.timeSlot === 'all') {
-      return dialogAction.action === 'close' 
-        ? `${format(selectedDate, 'yyyy-MM-dd')} 전체 예약을 마감하시겠습니까?`
-        : `${format(selectedDate, 'yyyy-MM-dd')} 전체 예약을 오픈하시겠습니까?`;
-    } else {
-      const timeSlotText = dialogAction.timeSlot === 'morning' ? '오전' : '오후';
-      return dialogAction.action === 'close'
-        ? `${format(selectedDate, 'yyyy-MM-dd')} ${timeSlotText}반 예약을 마감하시겠습니까?`
-        : `${format(selectedDate, 'yyyy-MM-dd')} ${timeSlotText}반 예약을 오픈하시겠습니까?`;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* 전체 날짜 마감 관리 버튼 */}
@@ -376,25 +434,42 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
                 이 날짜의 예약 가능 여부를 설정합니다.
               </p>
             </div>
-            <Button
-              variant={isAnyAvailable ? "outline" : "secondary"}
-              size="default"
-              className={isAnyAvailable ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}
-              onClick={() => handleAvailabilityToggle('all')}
-            >
-              {isAnyAvailable ? (
-                <>
-                  <Unlock className="h-4 w-4 mr-2" />
-                  전체 예약 마감하기
-                </>
-              ) : (
-                <>
-                  <Lock className="h-4 w-4 mr-2" />
-                  전체 예약 오픈하기
-                </>
-              )}
-            </Button>
-      </div>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="default"
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => {
+                  setDialogAction({
+                    open: true,
+                    timeSlot: 'future',
+                    action: 'close'
+                  });
+                }}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                다음 날부터 전체 마감
+              </Button>
+              <Button
+                variant={isAnyAvailable ? "outline" : "secondary"}
+                size="default"
+                className={isAnyAvailable ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}
+                onClick={() => handleAvailabilityToggle('all')}
+              >
+                {isAnyAvailable ? (
+                  <>
+                    <Unlock className="h-4 w-4 mr-2" />
+                    전체 예약 마감하기
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    전체 예약 오픈하기
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
       

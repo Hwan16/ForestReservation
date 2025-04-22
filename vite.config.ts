@@ -19,7 +19,7 @@ export default defineConfig({
       : []),
   ],
   server: {
-    port: 5000,
+    port: 3002,
     strictPort: false,
     host: '127.0.0.1',
   },

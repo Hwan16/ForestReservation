@@ -238,7 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           date,
           timeSlot,
           capacity,
-          reserved: 0
+          reserved: 0,
+          available
         });
       } else {
         // 기존 가용성 업데이트
@@ -248,13 +249,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return {
               ...current,
               capacity,
-              // Availability 타입에는 available 속성이 없으므로 이 속성을 직접 설정하지 않음
-              // DB 스키마의 가용성 데이터 형태에 맞추기
+              available
             };
           });
           
-          // 업데이트된 가용성 반환 전에 서비스 중단 설정을 직접 업데이트
-          // 이 작업은 getAvailabilityByDate가 반환하는 구조에 영향을 줍니다.
+          // 로그 출력
           if (!available) {
             console.log(`${date} ${timeSlot} 시간대 예약 마감 처리`);
           } else {
@@ -272,6 +271,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('가용성 업데이트 오류:', error);
       return res.status(500).json({ message: "가용성 업데이트 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 관리자용 전체 예약 마감 API (여러 날짜를 대상으로)
+  app.patch("/api/availability/close-all", async (req, res) => {
+    try {
+      const { startDate, endDate, timeSlot } = req.body;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "시작일과 종료일은 필수 입력 항목입니다." });
+      }
+      
+      // 날짜 형식 검증
+      if (!startDate.match(/^\d{4}-\d{2}-\d{2}$/) || !endDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return res.status(400).json({ message: "잘못된 날짜 형식입니다. YYYY-MM-DD 형식을 사용하세요." });
+      }
+      
+      // 날짜 범위 계산
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const dateRange = [];
+      
+      // 날짜 범위 내의 모든 날짜 생성
+      const currentDate = new Date(start);
+      while (currentDate <= end) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        dateRange.push(dateStr);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // 모든 날짜에 대해 예약 마감 처리
+      const updatedDates = [];
+      
+      for (const date of dateRange) {
+        // 일요일 확인
+        const dayOfWeek = new Date(date).getDay();
+        if (dayOfWeek === 0) continue; // 일요일은 처리하지 않음
+        
+        try {
+          // 오전/오후 또는 특정 시간대만 선택적으로 처리
+          const timeSlots = timeSlot ? [timeSlot] : ['morning', 'afternoon'];
+          
+          for (const slot of timeSlots) {
+            // 현재 가용성 확인
+            const availability = await storage.getAvailabilityByTimeSlot(date, slot);
+            
+            if (!availability) {
+              // 가용성 데이터가 없는 경우 생성
+              await storage.createAvailability({
+                date,
+                timeSlot: slot,
+                capacity: 99999,
+                reserved: 0,
+                available: false // 예약 마감으로 설정
+              });
+            } else {
+              // 기존 가용성 업데이트
+              await storage.updateAvailability(date, slot, (current) => ({
+                ...current,
+                available: false // 예약 마감으로 설정
+              }));
+            }
+          }
+          
+          updatedDates.push(date);
+        } catch (error) {
+          console.error(`${date} 예약 마감 처리 중 오류 발생:`, error);
+          // 계속 진행 (나머지 날짜 처리)
+        }
+      }
+      
+      return res.status(200).json({ 
+        message: `${updatedDates.length}개 날짜에 대한 예약 마감 처리가 완료되었습니다.`,
+        updatedDates
+      });
+    } catch (error) {
+      console.error('전체 예약 마감 처리 중 오류:', error);
+      return res.status(500).json({ message: "예약 마감 처리 중 오류가 발생했습니다." });
     }
   });
 
@@ -452,6 +529,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('예약 데이터 조회 중 오류 발생:', error);
       res.status(500).json({ error: '예약 데이터를 불러오는 중 오류가 발생했습니다.' });
+    }
+  });
+
+  // 특정 월의 가용성 정보 조회 (달력에서 사용)
+  app.get('/api/calendar/:year/:month', async (req, res) => {
+    try {
+      const { year, month } = req.params;
+      // 유효한 년도와 월 형식 확인
+      const yearNum = parseInt(year);
+      const monthNum = parseInt(month);
+      
+      if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+        return res.status(400).json({ message: "유효하지 않은 날짜 형식입니다." });
+      }
+      
+      // 월이 한 자리 수면 앞에 0 붙이기
+      const monthStr = monthNum < 10 ? `0${monthNum}` : `${monthNum}`;
+      const yearMonthStr = `${yearNum}-${monthStr}`;
+      
+      // 서버 로그
+      console.log(`Calendar API 요청: ${yearMonthStr}`);
+      
+      // 가용성 정보 가져오기
+      const availabilities = await storage.getAvailabilitiesByMonth(yearMonthStr);
+      
+      // 클라이언트에서 사용하기 쉬운 형태로 변환
+      const calendarData = availabilities.map(item => ({
+        date: item.date,
+        morningReserved: !item.status.morning.available,
+        afternoonReserved: !item.status.afternoon.available
+      }));
+      
+      return res.status(200).json(calendarData);
+    } catch (error) {
+      console.error('월별 가용성 정보 조회 중 오류 발생:', error);
+      return res.status(500).json({ message: "가용성 정보를 불러오는 중 오류가 발생했습니다." });
     }
   });
 

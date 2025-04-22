@@ -22,6 +22,16 @@ export type DayAvailability = {
   status: DayStatus;
 };
 
+// 날짜와 시간별 예약 데이터
+export interface Availability {
+  id?: number;
+  date: string;
+  timeSlot: string;
+  capacity: number;
+  reserved: number;
+  available?: boolean; // 예약 가능 여부를 직접 설정할 수 있는 필드 추가
+}
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -105,12 +115,24 @@ export class MemStorage implements IStorage {
   }
 
   // Availability methods
-  async createAvailability(insertAvailability: InsertAvailability): Promise<Availability> {
+  async createAvailability(data: {
+    date: string;
+    timeSlot: string;
+    capacity: number;
+    reserved: number;
+    available?: boolean;
+  }): Promise<Availability> {
     const id = this.availabilityIdCounter++;
-    const availability: Availability = { ...insertAvailability, id };
+    const availability = {
+      id,
+      date: data.date,
+      timeSlot: data.timeSlot,
+      capacity: data.capacity,
+      reserved: data.reserved,
+      available: data.available !== undefined ? data.available : true, // 기본값은 true(이용 가능)
+    };
     
-    // Create a unique key for the availability
-    const key = `${availability.date}_${availability.timeSlot}`;
+    const key = `${data.date}_${data.timeSlot}`;
     this.availabilities.set(key, availability);
     
     return availability;
@@ -150,7 +172,8 @@ export class MemStorage implements IStorage {
         date,
         status: {
           morning: morning ? {
-            available: !isSunday && morning.capacity > morning.reserved,
+            // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
+            available: morning.available !== undefined ? morning.available : (!isSunday && morning.capacity > morning.reserved),
             capacity: morning.capacity,
             reserved: morning.reserved,
           } : {
@@ -159,7 +182,8 @@ export class MemStorage implements IStorage {
             reserved: 0,
           },
           afternoon: afternoon ? {
-            available: !isSunday && afternoon.capacity > afternoon.reserved,
+            // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
+            available: afternoon.available !== undefined ? afternoon.available : (!isSunday && afternoon.capacity > afternoon.reserved),
             capacity: afternoon.capacity,
             reserved: afternoon.reserved,
           } : {
@@ -193,7 +217,8 @@ export class MemStorage implements IStorage {
       date,
       status: {
         morning: morning ? {
-          available: !isSunday && morning.capacity > morning.reserved,
+          // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
+          available: morning.available !== undefined ? morning.available : (!isSunday && morning.capacity > morning.reserved),
           capacity: morning.capacity,
           reserved: morning.reserved,
         } : {
@@ -202,7 +227,8 @@ export class MemStorage implements IStorage {
           reserved: 0,
         },
         afternoon: afternoon ? {
-          available: !isSunday && afternoon.capacity > afternoon.reserved,
+          // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
+          available: afternoon.available !== undefined ? afternoon.available : (!isSunday && afternoon.capacity > afternoon.reserved),
           capacity: afternoon.capacity,
           reserved: afternoon.reserved,
         } : {

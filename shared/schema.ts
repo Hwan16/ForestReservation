@@ -33,6 +33,7 @@ export const availability = pgTable("availability", {
   timeSlot: text("time_slot").notNull(), // "morning" or "afternoon"
   capacity: integer("capacity").notNull().default(30),
   reserved: integer("reserved").notNull().default(0),
+  available: boolean("available").default(true), // 예약 가능 여부 (관리자가 마감 설정 가능)
 });
 
 // Zod schemas for validation
