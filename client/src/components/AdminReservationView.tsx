@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { format, addDays, isEqual } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Reservation } from '../types';
-import { Loader2, Edit, Trash2, Info, Lock, Unlock, AlertCircle, Ban, Save, X } from 'lucide-react';
+import { Loader2, Edit, Trash2, Info, Lock, Unlock, AlertCircle, Ban, Save, X, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -86,7 +86,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const { data: allReservations, isLoading: isLoadingReservations, refetch: refetchReservations } = useQuery<Reservation[]>({
     queryKey: ['reservations', 'all'],
     queryFn: async () => {
-      const response = await fetch('/api/reservations/test');
+      const response = await fetch('/api/reservations/all');
       if (!response.ok) {
         throw new Error('예약 정보를 가져오는데 실패했습니다.');
       }
@@ -102,10 +102,9 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       return rawData; // 이미 올바른 형식일 경우
     },
     select: (data) => data || [],
-    refetchInterval: 1000, // 1초마다 자동 갱신
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    staleTime: 0, // 항상 최신 데이터 조회
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 60000 // 60초 (1분) 동안 캐시된 데이터 사용
   });
 
   // 현재 선택된 날짜의 예약만 필터링
@@ -123,10 +122,9 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       return response.json();
     },
     enabled: !!selectedDateStr,
-    refetchInterval: 1000, // 1초마다 자동 갱신
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    staleTime: 0 // 항상 최신 데이터 조회
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 10000 // 10초 동안은 캐시된 데이터 사용
   });
 
   // 가용성 상태 업데이트
@@ -369,18 +367,22 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
 
   const reservations = allReservations?.filter(res => res.date === selectedDateStr) || [];
 
-  // 주기적으로 데이터 새로고침 (useEffect 수정)
-  useEffect(() => {
-    // 업데이트 중일 때는 주기적 갱신 방지
-    if (isUpdatingRef.current) return;
+  // 주기적 데이터 갱신 제거 (useEffect 완전히 제거)
+  // 수동 새로고침 버튼 추가를 위한 변수
+  const isRefetching = useRef(false);
+  
+  // 수동 새로고침 함수
+  const handleManualRefresh = () => {
+    if (isRefetching.current) return;
     
-    const intervalId = setInterval(() => {
-      refetchReservations();
-      refetchAvailability();
-    }, 5000); // 5초로 유지
-    
-    return () => clearInterval(intervalId);
-  }, [refetchReservations, refetchAvailability, selectedDateStr]);
+    isRefetching.current = true;
+    Promise.all([
+      refetchReservations(),
+      refetchAvailability()
+    ]).finally(() => {
+      isRefetching.current = false;
+    });
+  };
 
   // 오전/오후 예약으로 구분
   const morningReservations = reservations?.filter(res => res.timeSlot === 'morning') || [];
