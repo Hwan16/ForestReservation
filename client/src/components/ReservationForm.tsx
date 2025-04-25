@@ -276,7 +276,7 @@ const ReservationForm = ({ selectedDate, selectedTime, onBack, onComplete }: Res
                         <RadioGroupItem value="experience" />
                       </FormControl>
                       <FormLabel className="font-normal">
-                        체험 활동만
+                        숲 활동만
                       </FormLabel>
                     </FormItem>
                   </RadioGroup>

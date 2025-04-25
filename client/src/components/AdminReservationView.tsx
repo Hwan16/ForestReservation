@@ -399,7 +399,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const getDesiredActivityText = (activity?: string) => {
     if (!activity) return '기본 프로그램';
     if (activity === 'all') return '모두(숲 놀이, 체험 활동)';
-    if (activity === 'experience') return '체험 활동만';
+    if (activity === 'experience') return '숲 활동만';
     return activity;
   };
 
@@ -512,7 +512,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">모두(숲 놀이, 체험 활동)</SelectItem>
-              <SelectItem value="experience">체험 활동만</SelectItem>
+              <SelectItem value="experience">숲 활동만</SelectItem>
             </SelectContent>
           </Select>
         </TableCell>

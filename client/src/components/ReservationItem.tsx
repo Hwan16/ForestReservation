@@ -82,7 +82,9 @@ const ReservationItem = ({ reservation, isAdminMode = false }: ReservationItemPr
           <Bookmark className="w-4 h-4 mr-2 text-gray-500" />
           <span className="text-gray-600">희망 활동: </span>
           <span className="ml-1 font-medium">
-            {reservation.desiredActivity === 'all' ? '모두(숲 놀이, 체험 활동)' : '체험 활동만'}
+            {reservation.desiredActivity === 'experience'
+              ? '숲 활동만'
+              : '모두(숲 놀이, 체험 활동)'}
           </span>
         </div>
         
