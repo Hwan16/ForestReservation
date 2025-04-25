@@ -10,6 +10,7 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { eq, asc } from "drizzle-orm";
 import { db } from "./db";
+import { sendReservationNotification } from "./services/smsService";
 
 // Create memory store for sessions
 const SessionStore = MemoryStore(session);
@@ -401,6 +402,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...current,
         reserved: current.reserved + data.participants,
       }));
+      
+      // Send SMS notification to admin
+      try {
+        await sendReservationNotification({
+          date: data.date,
+          timeSlot: data.timeSlot,
+          instName: data.instName,
+          name: data.name,
+          participants: data.participants
+        });
+        console.log("SMS 알림이 성공적으로 발송되었습니다.");
+      } catch (smsError) {
+        console.error("SMS 알림 발송 중 오류가 발생했습니다:", smsError);
+        // SMS 발송 실패해도 예약은 계속 진행
+      }
       
       return res.status(201).json(reservation);
     } catch (error) {

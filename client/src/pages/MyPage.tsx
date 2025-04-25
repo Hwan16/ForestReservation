@@ -51,6 +51,24 @@ const MyPage = () => {
     enabled: !!searchParams,
   });
 
+  // 체험활동 표시 도우미 함수
+  const getActivityLabel = (activity: string | undefined) => {
+    if (!activity) return '정보 없음';
+    
+    switch (activity) {
+      case 'forest':
+        return '숲 체험';
+      case 'craft':
+        return '만들기';
+      case 'play':
+        return '놀이 활동';
+      case 'all':
+        return '모든 활동';
+      default:
+        return activity;
+    }
+  };
+
   // 검색 폼 제출 핸들러
   const onSubmit = (values: SearchValues) => {
     setSearchParams(values);
@@ -77,9 +95,9 @@ const MyPage = () => {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>이름</FormLabel>
+                          <FormLabel>어린이집/유치원 이름</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="예약자 이름" />
+                            <Input {...field} placeholder="어린이집/유치원 이름" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -116,7 +134,7 @@ const MyPage = () => {
                     <p className="text-center py-4">로딩 중...</p>
                   ) : isError ? (
                     <p className="text-center py-4 text-red-500">예약 정보를 불러오는데 실패했습니다.</p>
-                  ) : reservations && reservations.length > 0 ? (
+                  ) : reservations && reservations.length > 0 ?
                     <div className="space-y-4">
                       {reservations.map((reservation) => (
                         <Card key={reservation.id} className="overflow-hidden">
@@ -146,6 +164,14 @@ const MyPage = () => {
                                 <p className="text-sm text-gray-500">참여 인원</p>
                                 <p>{reservation.participants}명</p>
                               </div>
+                              <div>
+                                <p className="text-sm text-gray-500">희망 체험활동</p>
+                                <p>{getActivityLabel(reservation.desiredActivity)}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">부모 참여 여부</p>
+                                <p>{reservation.parentParticipation === 'yes' ? '참여함' : '참여 안함'}</p>
+                              </div>
                               <div className="col-span-2">
                                 <p className="text-sm text-gray-500">전화번호</p>
                                 <p>{reservation.phone}</p>
@@ -159,10 +185,11 @@ const MyPage = () => {
                             </div>
                           </CardContent>
                         </Card>
-                      ))}
+                      ))
+                    }
                     </div>
-                  ) : (
-                    <p className="text-center py-4">예약 내역이 없습니다.</p>
+                  : (
+                    <p className="text-center py-4">검색 결과가 없습니다.</p>
                   )}
                 </div>
               )}
