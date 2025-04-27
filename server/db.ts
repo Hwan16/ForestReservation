@@ -1,65 +1,62 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { neonConfig } from "@neondatabase/serverless";
 import * as schema from "@shared/schema";
 
-const sqlite = new Database('forest.db');
-export const db = drizzle(sqlite, { schema });
+// 환경 변수에서 데이터베이스 URL 가져오기
+const databaseUrl = process.env.DATABASE_URL || 
+  `postgresql://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT || 5432}/${process.env.DATABASE_NAME}`;
 
-// 데이터베이스 초기화
-const initDatabase = () => {
-  // users 테이블 생성
-  sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      is_admin INTEGER NOT NULL DEFAULT 0
-    );
-  `);
+// Vercel 환경에서는 WebSocket을 사용하지 않음
+if (process.env.VERCEL === '1') {
+  neonConfig.webSocketConstructor = undefined;
+  neonConfig.useSecureWebSocket = false;
+  neonConfig.pipelineTLS = false;
+  console.log("[DB] Configured for Vercel serverless environment");
+}
 
-  // reservations 테이블 생성
-  sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS reservations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      reservation_id TEXT NOT NULL UNIQUE,
-      date TEXT NOT NULL,
-      time_slot TEXT NOT NULL,
-      name TEXT NOT NULL,
-      inst_name TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      email TEXT,
-      participants INTEGER NOT NULL,
-      desired_activity TEXT NOT NULL,
-      parent_participation TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // availability 테이블 생성
-  sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS availability (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      time_slot TEXT NOT NULL,
-      capacity INTEGER NOT NULL DEFAULT 30,
-      reserved INTEGER NOT NULL DEFAULT 0,
-      available INTEGER DEFAULT 1
-    );
-  `);
-  
-  // available 필드가 없는 경우 추가하는 마이그레이션
-  try {
-    // 필드 존재 여부 확인
-    const checkColumn = sqlite.prepare("PRAGMA table_info(availability)").all();
-    const hasAvailableColumn = checkColumn.some((col: any) => col.name === 'available');
-    
-    if (!hasAvailableColumn) {
-      console.log("availability 테이블에 available 필드 추가");
-      sqlite.exec("ALTER TABLE availability ADD COLUMN available INTEGER DEFAULT 1");
-    }
-  } catch (error) {
-    console.error("데이터베이스 마이그레이션 중 오류 발생:", error);
-  }
+// 연결 풀 옵션 설정
+const connectionOptions = {
+  max: 10, // 최대 연결 수
+  idle_timeout: 20, // 유휴 연결 시간(초)
+  connect_timeout: 10, // 연결 시간 초과(초)
+  prepare: false, // 서버리스 환경에서는 준비된 문 사용하지 않음
 };
 
-initDatabase();
+// 데이터베이스 연결 클라이언트 생성
+let client: ReturnType<typeof postgres>;
+try {
+  client = postgres(databaseUrl, connectionOptions);
+  console.log("[DB] Database connection initialized");
+} catch (error) {
+  console.error("[DB] Failed to initialize database connection:", error);
+  throw error;
+}
+
+// Drizzle ORM 인스턴스 생성
+export const db = drizzle(client, { schema });
+
+// 연결 테스트
+export async function testConnection() {
+  try {
+    const result = await client`SELECT NOW()`;
+    console.log("[DB] Connection test successful:", result[0]?.now);
+    return true;
+  } catch (error) {
+    console.error("[DB] Connection test failed:", error);
+    return false;
+  }
+}
+
+// 애플리케이션 종료 시 데이터베이스 연결 종료
+process.on('SIGTERM', async () => {
+  console.log("[DB] SIGTERM received, closing database connections");
+  try {
+    await client.end();
+    console.log("[DB] Database connections closed");
+  } catch (err) {
+    console.error("[DB] Error closing database connections:", err);
+  } finally {
+    process.exit(0);
+  }
+});

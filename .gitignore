@@ -1,6 +1,50 @@
+# dependencies
 node_modules
+
+# build output
 dist
+.output
+.vercel
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# SQLite DB
+*.db
+*.db-journal
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
 .DS_Store
+.idea
+.vscode
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel CLI
+.vercel
+.vercel-dev
+.vercel-dev-debug
+
+# Test coverage
+coverage
+.nyc_output
+
 server/public
 vite.config.ts.*
 *.tar.gz

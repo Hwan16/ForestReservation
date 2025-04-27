@@ -6,8 +6,11 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
 });
 
 // Reservations table
@@ -26,6 +29,19 @@ export const reservations = pgTable("reservations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Files table to store file metadata
+export const files = pgTable("files", {
+  id: serial("id").primaryKey(),
+  path: text("path").notNull().unique(), // Supabase storage path
+  filename: text("filename").notNull(), // Original filename
+  contentType: text("content_type").notNull(), // MIME type
+  size: integer("size").notNull(), // File size in bytes
+  url: text("url").notNull(), // Public URL
+  relatedId: text("related_id"), // ID of related entity (e.g., reservation ID)
+  relatedType: text("related_type"), // Type of related entity (e.g., "reservation")
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Availability table to track available slots
 export const availability = pgTable("availability", {
   id: serial("id").primaryKey(),
@@ -38,8 +54,9 @@ export const availability = pgTable("availability", {
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
-export const insertReservationSchema = createInsertSchema(reservations).omit({ id: true });
-export const insertAvailabilitySchema = createInsertSchema(availability).omit({ id: true });
+export const insertReservationSchema = createInsertSchema(reservations);
+export const insertAvailabilitySchema = createInsertSchema(availability);
+export const insertFileSchema = createInsertSchema(files);
 
 // Type definitions
 export type User = typeof users.$inferSelect;
@@ -50,6 +67,9 @@ export type InsertReservation = z.infer<typeof insertReservationSchema>;
 
 export type Availability = typeof availability.$inferSelect;
 export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
+
+export type File = typeof files.$inferSelect;
+export type InsertFile = z.infer<typeof insertFileSchema>;
 
 // Extended schemas for validation
 export const createReservationSchema = z.object({
@@ -71,7 +91,41 @@ export const createReservationSchema = z.object({
   }),
 });
 
+// 로그인 스키마
 export const loginSchema = z.object({
-  username: z.string().min(1, "사용자 이름은 필수 입력 항목입니다."),
-  password: z.string().min(1, "비밀번호는 필수 입력 항목입니다.")
+  email: z.string().email("유효한 이메일 주소를 입력해주세요."),
+  password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다.")
+});
+
+// 회원가입 스키마
+export const registerSchema = z.object({
+  username: z.string().min(3, "사용자 이름은 최소 3자 이상이어야 합니다."),
+  email: z.string().email("유효한 이메일 주소를 입력해주세요."),
+  password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다."),
+  passwordConfirm: z.string().min(6, "비밀번호 확인은 최소 6자 이상이어야 합니다.")
+}).refine(data => data.password === data.passwordConfirm, {
+  message: "비밀번호와 비밀번호 확인이 일치하지 않습니다.",
+  path: ["passwordConfirm"]
+});
+
+// 비밀번호 재설정 요청 스키마
+export const resetPasswordRequestSchema = z.object({
+  email: z.string().email("유효한 이메일 주소를 입력해주세요.")
+});
+
+// 비밀번호 재설정 스키마
+export const resetPasswordSchema = z.object({
+  token: z.string(),
+  password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다."),
+  passwordConfirm: z.string().min(6, "비밀번호 확인은 최소 6자 이상이어야 합니다.")
+}).refine(data => data.password === data.passwordConfirm, {
+  message: "비밀번호와 비밀번호 확인이 일치하지 않습니다.",
+  path: ["passwordConfirm"]
+});
+
+// 파일 스키마
+export const fileSchema = z.object({
+  filename: z.string().min(1, "파일 이름은 필수 입력 항목입니다."),
+  contentType: z.string().min(1, "파일 타입은 필수 입력 항목입니다."),
+  size: z.number().min(1, "파일 크기는 1바이트 이상이어야 합니다.").max(10485760, "파일 크기는 10MB 이하여야 합니다."),
 });

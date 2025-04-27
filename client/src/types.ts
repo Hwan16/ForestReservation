@@ -53,3 +53,40 @@ export interface CalendarDate {
   morningReserved: boolean;
   afternoonReserved: boolean;
 }
+
+/**
+ * API 응답 표준 형식
+ */
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data: T | null;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * 유저 정보 인터페이스
+ */
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+/**
+ * 인증 세션 정보
+ */
+export interface AuthSession {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+/**
+ * 로그인 응답 데이터
+ */
+export interface LoginResponse {
+  user: User;
+  session: AuthSession;
+}

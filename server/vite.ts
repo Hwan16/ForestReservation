@@ -5,6 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { isVercel } from "./index";
 
 const viteLogger = createLogger();
 
@@ -70,12 +71,32 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  let distPath = path.resolve(import.meta.dirname, "../dist/public");
+  
+  // Vercel 배포 환경에서는 경로 조정
+  if (isVercel) {
+    // Vercel 환경에서는 프로젝트 루트를 기준으로 경로 설정
+    const vercelDistPath = path.resolve(process.cwd(), "dist/public");
+    
+    if (fs.existsSync(vercelDistPath)) {
+      distPath = vercelDistPath;
+      log(`Using Vercel dist path: ${distPath}`);
+    } else {
+      log(`Vercel dist path not found: ${vercelDistPath}, fallback to: ${distPath}`);
+    }
+  }
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+    log(`Warning: Could not find the build directory: ${distPath}`);
+    log(`Current directory: ${process.cwd()}`);
+    log(`Available files: ${fs.readdirSync(process.cwd()).join(', ')}`);
+    
+    // 배포 환경에서는 계속 진행하려고 시도
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error(
+        `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      );
+    }
   }
 
   app.use(express.static(distPath));

@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { format, addDays, isEqual } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Reservation } from '../types';
+import { Reservation, ApiResponse, AvailabilityStatus } from '../types';
 import { Loader2, Edit, Trash2, Info, Lock, Unlock, AlertCircle, Ban, Save, X, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { AvailabilityStatus } from '../types';
+import { fetchAvailability, updateAvailability, fetchAllReservations, deleteReservation, updateReservation } from '@/lib/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,12 +86,14 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const { data: allReservations, isLoading: isLoadingReservations, refetch: refetchReservations } = useQuery<Reservation[]>({
     queryKey: ['reservations', 'all'],
     queryFn: async () => {
-      const response = await fetch('/api/reservations/all');
-      if (!response.ok) {
-        throw new Error('예약 정보를 가져오는데 실패했습니다.');
+      const response = await fetchAllReservations();
+      
+      if (!response.success) {
+        throw new Error(response.message || '예약 정보를 가져오는데 실패했습니다.');
       }
+      
       // 서버 데이터 변환 처리
-      const rawData = await response.json();
+      const rawData = response.data;
       console.log("서버 원본 데이터:", rawData);
       
       // 데이터가 이미 올바른 형식인지 확인
@@ -115,11 +117,16 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
   const { data: availability, isLoading: isLoadingAvailability, refetch: refetchAvailability } = useQuery({
     queryKey: ['availability', selectedDateStr],
     queryFn: async () => {
-      const response = await fetch(`/api/availability/date/${selectedDateStr}`);
-      if (!response.ok) {
-        throw new Error('예약 가능 여부 정보를 가져오는데 실패했습니다.');
+      const response = await fetchAvailability(
+        parseInt(yearMonth.split('-')[0]),
+        parseInt(yearMonth.split('-')[1])
+      );
+      
+      if (!response.success) {
+        throw new Error(response.message || '예약 가능 여부 정보를 가져오는데 실패했습니다.');
       }
-      return response.json();
+      
+      return response.data.find(day => day.date === selectedDateStr) || null;
     },
     enabled: !!selectedDateStr,
     refetchOnMount: true,
@@ -148,43 +155,16 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
           available
         });
         
-        // 쿠키가 자동으로 전송되도록 credentials 옵션 설정
-        const response = await fetch('/api/availability/update', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: selectedDateStr,
-            timeSlot,
-            capacity: 99999, // 큰 숫자로 설정 (실질적으로 무제한)
-            available
-          }),
-          credentials: 'same-origin' // 쿠키를 포함하여 요청
+        const response = await updateAvailability(selectedDateStr, timeSlot, {
+          capacity: 99999, // 큰 숫자로 설정 (실질적으로 무제한)
+          available
         });
-
-        // 응답 상태 로깅
-        console.log('API 응답 상태:', response.status);
         
-        // 응답 본문을 텍스트로 먼저 읽기
-        const textResponse = await response.text();
-        console.log('원본 응답 텍스트:', textResponse);
-        
-        // 텍스트가 비어있지 않으면 JSON으로 파싱
-        let responseData;
-        try {
-          responseData = textResponse ? JSON.parse(textResponse) : {};
-        } catch (e) {
-          console.error('JSON 파싱 오류:', e);
-          responseData = { message: '서버 응답을 처리할 수 없습니다.' };
-        }
-        
-        // 응답이 성공적이지 않으면 일반 오류로 처리
-        if (!response.ok) {
-          throw new Error(responseData.message || '예약 가능 여부 업데이트에 실패했습니다.');
+        if (!response.success) {
+          throw new Error(response.message || '예약 가능 여부 업데이트에 실패했습니다.');
         }
 
-        return responseData;
+        return response.data;
       } catch (error) {
         console.error('업데이트 오류:', error);
         throw error;
@@ -196,7 +176,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       }
     },
     onSuccess: (data) => {
-      // 필요한 쿼리만 무효화 (refetch는 제거)
+      // 필요한 쿼리만 무효화
       queryClient.invalidateQueries({ queryKey: ['availability', selectedDateStr] });
       
       toast({
@@ -639,39 +619,23 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
 
   // 예약 취소 처리 함수
   const handleCancelReservation = async (reservation: Reservation) => {
-    // 로그 추가 - 예약 정보 확인
-    console.log('삭제할 예약 정보:', {
-      id: reservation.id,
-      reservationId: reservation.reservationId,
-      name: reservation.name,
-      timeSlot: reservation.timeSlot,
-      date: reservation.date
-    });
-    
-    const confirmCancel = window.confirm(`[${reservation.name}] 예약을 삭제하시겠습니까?`);
-    if (confirmCancel) {
+    if (window.confirm(`[${reservation.name}] 예약을 삭제하시겠습니까?`)) {
       try {
-        // reservationId가 우선, 없으면 id 사용
-        const deleteId = reservation.reservationId || reservation.id;
-        
+        const deleteId = reservation.id || reservation.reservationId;
         if (!deleteId) {
-          throw new Error('삭제할 예약의 ID가 존재하지 않습니다.');
+          throw new Error('삭제할 예약 ID를 찾을 수 없습니다.');
         }
         
         console.log(`예약 삭제 요청 ID: ${deleteId}`);
         
-        const response = await fetch(`/api/reservations/${deleteId}`, {
-          method: 'DELETE',
-          credentials: 'same-origin'
-        });
+        const response = await deleteReservation(deleteId);
 
         // 응답 로그 추가
-        console.log('삭제 응답 상태:', response.status, response.statusText);
+        console.log('삭제 응답:', response);
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('삭제 실패 응답:', errorText);
-          throw new Error(`예약 삭제에 실패했습니다. 상태 코드: ${response.status}`);
+        if (!response.success) {
+          console.error('삭제 실패 응답:', response.error);
+          throw new Error(response.message || `예약 삭제에 실패했습니다.`);
         }
 
         toast({
@@ -699,24 +663,23 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
 
   // 날짜 예약 가능 여부 관리 함수들
   const handleToggleAvailability = async (timeSlot: 'morning' | 'afternoon') => {
-    if (!availability) {
+    if (!availability || !availability.status) {
       alert('가용성 데이터를 불러올 수 없습니다.');
       return;
     }
 
-    const currentValue = timeSlot === 'morning' ? availability.morning.available : availability.afternoon.available;
+    const currentValue = timeSlot === 'morning' 
+      ? availability.status.morning.available 
+      : availability.status.afternoon.available;
     
     try {
-      const response = await fetch(`/api/availability/date/${selectedDateStr}/${timeSlot}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ available: !currentValue }),
+      // 새로운 API 사용
+      const response = await updateAvailability(selectedDateStr, timeSlot, { 
+        available: !currentValue 
       });
 
-      if (!response.ok) {
-        throw new Error(`${timeSlot} 예약 가능 여부 변경에 실패했습니다.`);
+      if (!response.success) {
+        throw new Error(response.message || `${timeSlot} 예약 가능 여부 변경에 실패했습니다.`);
       }
 
       // 데이터 무효화 및 재조회
