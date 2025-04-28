@@ -64,28 +64,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize sample availability data
   const initAvailability = async (reset = false) => {
-    const today = new Date();
+    const today = new Date('2025-04-01');
     const availabilities = await storage.getAllAvailabilities();
     
     if (availabilities.length === 0 || reset) {
       // Create availability for the next 365 days (1년)
       for (let i = 0; i < 365; i++) {
-        const date = new Date();
-        date.setDate(today.getDate() + i);
-        
+        // 날짜 생성 버그 완전 수정: 기준일 타임스탬프에 i일(ms)씩 더하는 방식
+        const date = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
+        // KST 보정
+        const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+        const dateStr = kst.toISOString().split('T')[0];
         // Skip Sundays (closed day)
-        if (date.getDay() === 0) continue;
-        
-        const dateStr = date.toISOString().split('T')[0];
-        console.log("Creating availability for:", dateStr, "day:", date.getDay());
-        
+        if (kst.getDay() === 0) continue;
+        console.log("Creating availability for:", dateStr, "day:", kst.getDay());
         await storage.createAvailability({
           date: dateStr,
           timeSlot: "morning",
           capacity: 99999, // 실제로는 무제한 (매우 큰 숫자)
           reserved: 0,
         });
-        
         await storage.createAvailability({
           date: dateStr,
           timeSlot: "afternoon",

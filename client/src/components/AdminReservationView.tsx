@@ -91,15 +91,13 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
       if (!response.success) {
         throw new Error(response.message || '예약 정보를 가져오는데 실패했습니다.');
       }
-      
       // 서버 데이터 변환 처리
-      const rawData = response.data;
+      const rawData = response.data || [];
       console.log("서버 원본 데이터:", rawData);
-      
       // 데이터가 이미 올바른 형식인지 확인
       if (rawData.length > 0 && 'desired_activity' in rawData[0]) {
         // snake_case에서 camelCase로 변환
-        return rawData.map(normalizeReservation);
+        return rawData.map((item: any) => normalizeReservation(item));
       }
       return rawData; // 이미 올바른 형식일 경우
     },
@@ -126,7 +124,7 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
         throw new Error(response.message || '예약 가능 여부 정보를 가져오는데 실패했습니다.');
       }
       
-      return response.data.find(day => day.date === selectedDateStr) || null;
+      return (response.data || []).find(day => day.date === selectedDateStr) || null;
     },
     enabled: !!selectedDateStr,
     refetchOnMount: true,
@@ -613,9 +611,46 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     );
   }
 
-  const isMorningAvailable = availabilityStatus?.morning.available;
-  const isAfternoonAvailable = availabilityStatus?.afternoon.available;
-  const isAnyAvailable = isMorningAvailable || isAfternoonAvailable;
+  const isMorningAvailable = availabilityStatus ? availabilityStatus.morning.available : false;
+  const isAfternoonAvailable = availabilityStatus ? availabilityStatus.afternoon.available : false;
+  // 전체 오픈/마감 버튼 상태 계산
+  const isAllClosed = !isMorningAvailable && !isAfternoonAvailable;
+  const isAllOpen = isMorningAvailable && isAfternoonAvailable;
+  const isAnyOpen = isMorningAvailable || isAfternoonAvailable;
+
+  // 전체 버튼 텍스트/색상: 현재 상태를 보여줌
+  const getAllButtonProps = () => {
+    return isAllClosed
+      ? {
+          text: '전체 예약 오픈',
+          colorClass: 'bg-red-50 text-red-700 border-red-300',
+          variant: 'secondary' as const,
+          icon: <Lock className="h-4 w-4 mr-2" />,
+        }
+      : {
+          text: '전체 예약 마감',
+          colorClass: 'bg-green-50 text-green-700 border-green-300',
+          variant: 'outline' as const,
+          icon: <Unlock className="h-4 w-4 mr-2" />,
+        };
+  };
+
+  // 오전/오후 버튼 텍스트 및 색상: 현재 상태를 보여줌
+  const getTimeSlotButtonProps = (available: boolean) => {
+    return available
+      ? {
+          text: '예약 마감',
+          colorClass: 'bg-green-50 text-green-700 border-green-300',
+          variant: 'outline' as const,
+          icon: <Unlock className="h-4 w-4 mr-1" />,
+        }
+      : {
+          text: '예약 오픈',
+          colorClass: 'bg-red-50 text-red-700 border-red-300',
+          variant: 'secondary' as const,
+          icon: <Lock className="h-4 w-4 mr-1" />,
+        };
+  };
 
   // 예약 취소 처리 함수
   const handleCancelReservation = async (reservation: Reservation) => {
@@ -661,76 +696,6 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
     }
   };
 
-  // 날짜 예약 가능 여부 관리 함수들
-  const handleToggleAvailability = async (timeSlot: 'morning' | 'afternoon') => {
-    if (!availability || !availability.status) {
-      alert('가용성 데이터를 불러올 수 없습니다.');
-      return;
-    }
-
-    const currentValue = timeSlot === 'morning' 
-      ? availability.status.morning.available 
-      : availability.status.afternoon.available;
-    
-    try {
-      // 새로운 API 사용
-      const response = await updateAvailability(selectedDateStr, timeSlot, { 
-        available: !currentValue 
-      });
-
-      if (!response.success) {
-        throw new Error(response.message || `${timeSlot} 예약 가능 여부 변경에 실패했습니다.`);
-      }
-
-      // 데이터 무효화 및 재조회
-      queryClient.invalidateQueries({ queryKey: ['availability', selectedDateStr] });
-      
-      // 캘린더 데이터도 무효화하여 색상 변경이 즉시 반영되도록 함
-      queryClient.invalidateQueries({ queryKey: ['availability', yearMonth] });
-      queryClient.invalidateQueries({ queryKey: ['reservations', yearMonth] });
-    } catch (error) {
-      console.error('예약 가능 여부 변경 에러:', error);
-      alert('예약 가능 여부 변경 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 전체 날짜 열기/닫기 함수
-  const handleCloseAllSessions = async () => {
-    if (!availability) {
-      alert('가용성 데이터를 불러올 수 없습니다.');
-      return;
-    }
-
-    // 현재 둘 다 닫혀있는지 확인
-    const allClosed = !availability.morning.available && !availability.afternoon.available;
-    // 모두 열기 또는 닫기 선택
-    const shouldOpen = allClosed;
-
-    try {
-      const response = await fetch(`/api/availability/date/${selectedDateStr}/all`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ available: shouldOpen }),
-      });
-
-      if (!response.ok) {
-        throw new Error('모든 세션 상태 변경에 실패했습니다.');
-      }
-
-      // 데이터 무효화 및 재조회 
-      queryClient.invalidateQueries({ queryKey: ['availability', selectedDateStr] });
-      
-      // 캘린더 데이터도 무효화하여 색상 변경이 즉시 반영되도록 함
-      queryClient.invalidateQueries({ queryKey: ['availability', yearMonth] });
-      queryClient.invalidateQueries({ queryKey: ['reservations', yearMonth] });
-    } catch (error) {
-      console.error('세션 상태 변경 에러:', error);
-      alert('세션 상태 변경 중 오류가 발생했습니다.');
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* 전체 날짜 마감 관리 버튼 */}
@@ -746,24 +711,20 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant={isAnyAvailable ? "outline" : "secondary"}
-                size="default"
-                className={isAnyAvailable ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}
-                onClick={() => handleAvailabilityToggle('all')}
-              >
-                {isAnyAvailable ? (
-                  <>
-                    <Unlock className="h-4 w-4 mr-2" />
-                    전체 예약 마감하기
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 mr-2" />
-                    전체 예약 오픈하기
-                  </>
-                )}
-              </Button>
+              {(() => {
+                const { text, colorClass, variant, icon } = getAllButtonProps();
+                return (
+                  <Button
+                    variant={variant}
+                    size="default"
+                    className={colorClass}
+                    onClick={() => handleAvailabilityToggle('all')}
+                  >
+                    {icon}
+                    {text}
+                  </Button>
+                );
+              })()}
             </div>
           </div>
         </CardContent>
@@ -783,24 +744,20 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
               <CardDescription>
               </CardDescription>
             </div>
-            <Button 
-              variant={isMorningAvailable ? "outline" : "secondary"}
-              size="sm"
-              className={isMorningAvailable ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}
-              onClick={() => handleAvailabilityToggle('morning')}
-            >
-              {isMorningAvailable ? (
-                <>
-                  <Unlock className="h-4 w-4 mr-1" />
-                  예약 가능
-                </>
-              ) : (
-                <>
-                  <Lock className="h-4 w-4 mr-1" />
-                  예약 마감
-                </>
-              )}
-            </Button>
+            {(() => {
+              const { text, colorClass, variant, icon } = getTimeSlotButtonProps(isMorningAvailable);
+              return (
+                <Button
+                  variant={variant}
+                  size="sm"
+                  className={colorClass}
+                  onClick={() => handleAvailabilityToggle('morning')}
+                >
+                  {icon}
+                  {text}
+                </Button>
+              );
+            })()}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -822,24 +779,20 @@ const AdminReservationView: React.FC<AdminReservationViewProps> = ({ selectedDat
               <CardDescription>
               </CardDescription>
             </div>
-            <Button 
-              variant={isAfternoonAvailable ? "outline" : "secondary"}
-              size="sm"
-              className={isAfternoonAvailable ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}
-              onClick={() => handleAvailabilityToggle('afternoon')}
-            >
-              {isAfternoonAvailable ? (
-                <>
-                  <Unlock className="h-4 w-4 mr-1" />
-                  예약 가능
-                </>
-              ) : (
-                <>
-                  <Lock className="h-4 w-4 mr-1" />
-                  예약 마감
-                </>
-              )}
-            </Button>
+            {(() => {
+              const { text, colorClass, variant, icon } = getTimeSlotButtonProps(isAfternoonAvailable);
+              return (
+                <Button
+                  variant={variant}
+                  size="sm"
+                  className={colorClass}
+                  onClick={() => handleAvailabilityToggle('afternoon')}
+                >
+                  {icon}
+                  {text}
+                </Button>
+              );
+            })()}
           </div>
         </CardHeader>
         <CardContent className="p-0">

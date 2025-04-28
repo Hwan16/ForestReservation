@@ -165,15 +165,19 @@ export class MemStorage implements IStorage {
       
       // Date 객체로 변환하여 요일 확인 (일요일 = 0)
       const dayOfWeek = new Date(date).getDay();
-      // 일요일(0)인 경우 무조건 예약 불가능
-      const isSunday = dayOfWeek === 0;
+      // 일요일(0)만 예약 불가
+      const isClosedDay = dayOfWeek === 0;
+      // 오늘 이전 날짜는 무조건 예약마감 (KST 기준)
+      const now = new Date();
+      const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      const todayStr = kstNow.toISOString().split('T')[0];
+      const isPast = date < todayStr;
       
       result.push({
         date,
         status: {
           morning: morning ? {
-            // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
-            available: morning.available !== undefined ? morning.available : (!isSunday && morning.capacity > morning.reserved),
+            available: isPast ? false : (morning.available !== undefined ? morning.available : (!isClosedDay && morning.capacity > morning.reserved)),
             capacity: morning.capacity,
             reserved: morning.reserved,
           } : {
@@ -182,8 +186,7 @@ export class MemStorage implements IStorage {
             reserved: 0,
           },
           afternoon: afternoon ? {
-            // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
-            available: afternoon.available !== undefined ? afternoon.available : (!isSunday && afternoon.capacity > afternoon.reserved),
+            available: isPast ? false : (afternoon.available !== undefined ? afternoon.available : (!isClosedDay && afternoon.capacity > afternoon.reserved)),
             capacity: afternoon.capacity,
             reserved: afternoon.reserved,
           } : {
@@ -208,17 +211,19 @@ export class MemStorage implements IStorage {
     
     // Date 객체로 변환하여 요일 확인 (일요일 = 0)
     const dayOfWeek = new Date(date).getDay();
-    console.log(`getAvailabilityByDate - date: ${date}, day: ${dayOfWeek}`);
-    
-    // 일요일(0)인 경우 무조건 예약 불가능
-    const isSunday = dayOfWeek === 0;
+    // 일요일(0)만 예약 불가
+    const isClosedDay = dayOfWeek === 0;
+    // 오늘 이전 날짜는 무조건 예약마감 (KST 기준)
+    const now = new Date();
+    const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const todayStr = kstNow.toISOString().split('T')[0];
+    const isPast = date < todayStr;
     
     return {
       date,
       status: {
         morning: morning ? {
-          // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
-          available: morning.available !== undefined ? morning.available : (!isSunday && morning.capacity > morning.reserved),
+          available: isPast ? false : (morning.available !== undefined ? morning.available : (!isClosedDay && morning.capacity > morning.reserved)),
           capacity: morning.capacity,
           reserved: morning.reserved,
         } : {
@@ -227,8 +232,7 @@ export class MemStorage implements IStorage {
           reserved: 0,
         },
         afternoon: afternoon ? {
-          // 관리자가 설정한 available 값이 있으면 그 값을 우선 사용, 없으면 기존 로직 적용
-          available: afternoon.available !== undefined ? afternoon.available : (!isSunday && afternoon.capacity > afternoon.reserved),
+          available: isPast ? false : (afternoon.available !== undefined ? afternoon.available : (!isClosedDay && afternoon.capacity > afternoon.reserved)),
           capacity: afternoon.capacity,
           reserved: afternoon.reserved,
         } : {

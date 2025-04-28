@@ -10,7 +10,7 @@ const Header = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(isAuthenticated());
   const { toast } = useToast();
-  const [_, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // 1초마다 인증 상태 확인 (관리자 로그인/로그아웃 상태 변화 감지)
   useEffect(() => {
@@ -52,7 +52,6 @@ const Header = () => {
   };
 
   // 현재 페이지 정보 가져오기
-  const [location] = useLocation();
   const isAdminPage = location.startsWith('/admin');
 
   return (
@@ -82,7 +81,13 @@ const Header = () => {
       <header className="bg-white shadow-md">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-5">
-            <Link href="/" className="flex items-center">
+            <div
+              role="button"
+              tabIndex={0}
+              className="flex items-center cursor-pointer"
+              onClick={() => { window.location.href = '/'; }}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') window.location.href = '/'; }}
+            >
               <img 
                 src={forestLogo} 
                 alt="아름유아 숲 체험원 로고" 
@@ -96,7 +101,7 @@ const Header = () => {
                   </span>
                 )}
               </h1>
-            </Link>
+            </div>
           </div>
           {/* 관리자 모드에서는 버튼이 표시되지 않도록 수정 */}
           {!isAdminPage && (
