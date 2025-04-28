@@ -38,12 +38,6 @@
     "NODE_ENV": "production"
   },
   "regions": ["icn1"],
-  "functions": {
-    "api/**/*.ts": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "github": {
     "silent": false,
     "autoAlias": true
